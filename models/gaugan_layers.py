@@ -17,7 +17,7 @@ class SPADE(nn.Module):
         conditional_features = self.shared_conv(mask)
         mu = self.mu_conv(conditional_features)
         sigma = self.sigma_conv(conditional_features)
-        return (x * sigma) + mu
+        return (self.bn(x) * sigma) + mu
 
 
 class SPADE_ResBlock(nn.Module):
