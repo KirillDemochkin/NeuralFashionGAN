@@ -1,4 +1,5 @@
 from models.gaugan_generators import GauGANGenerator
+from models.discriminator import GauGANDiscriminator
 import torch
 
 def test_generator():
@@ -9,3 +10,11 @@ def test_generator():
 
     out = gg(test, mask)
 
+def test_discriminator():
+    test = torch.empty(3, 5, 256, 256).uniform_(-1, 1)
+    mask = torch.ones(3, 5, 256, 256)
+
+    gd = GauGANDiscriminator(5)
+
+    out = gd(test, mask)
+    print(out.shape)
