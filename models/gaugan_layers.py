@@ -41,3 +41,17 @@ class SPADE_ResBlock(nn.Module):
         return out + x
 
 
+class Discriminator_block(nn.Module):
+    def __init__(self, in_filters, out_filters, normalization=True):
+        super(Discriminator_block, self).__init__()
+        self.conv = nn.Conv2d(in_filters, out_filters, 4, stride=2, padding=1)
+        self.norm = nn.InstanceNorm2d(out_filters)
+        self.leaky = nn.LeakyReLU(0.2, inplace=True)
+        self.normalization = normalization
+
+    def forward(self, x):
+        x = self.conv(x)
+        if self.normalization:
+            x = self.norm(x)
+        x = self.leaky(x)
+        return x
