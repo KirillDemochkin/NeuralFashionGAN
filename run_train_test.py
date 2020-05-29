@@ -4,12 +4,14 @@ import time
 
 import numpy as np
 import os
+import datetime
 import torch
 import torch.nn
 import torch.utils.data as data_utils
 import torch.optim as optim
 from tensorboardX import SummaryWriter
-
+import torchvision.utils as vutils
+import matplotlib.pyplot as plt
 
 from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANGenerator
@@ -18,7 +20,8 @@ from models.weights_init import weights_init
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--basenet', help='pretrained base model')
+parser.add_argument('--basenetG', help='pretrained base model')
+parser.add_argument('--basenetD', help='pretrained base model')
 parser.add_argument('--jaccard_threshold', default=0.5,
                     type=float, help='Min Jaccard index for matching')
 parser.add_argument('-b', '--batch_size', default=8,
@@ -31,9 +34,7 @@ parser.add_argument('--lr', '--learning-rate',
                     default=1e-3, type=float, help='initial learning rate')
 parser.add_argument('-epoch', '--max_epoch', default=30,
                     type=int, help='max epoch for training')
-parser.add_argument('--log_iters', default=True,
-                    type=bool, help='Print the loss at each iteration')
-parser.add_argument('--save_folder', default='weights/',
+parser.add_argument('--save_folder', default='img/',
                     help='Location to save checkpoint models')
 parser.add_argument('--save_frequency', default=10)
 parser.add_argument('--test_frequency', default=10)
@@ -41,21 +42,21 @@ parser.add_argument('--mode', type=str, choices=['train', 'test'], default='trai
 parser.add_argument('--weight_decay', default=5e-4,
                     type=float, help='Weight decay for SGD')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-parser.add_argument('--betas', default=0.5,
+parser.add_argument('--betas', default=0.0,
                     type=float)
 parser.add_argument('--load', default=False, help='resume net for retraining')
 args = parser.parse_args()
 
-save_folder = os.path.join(args.save_folder, args.version + '_' + args.size,
-                           time.strftime('_%Y-%m-%d-%H-%M', time.localtime(time.time())))
-if not os.path.exists(save_folder):
-    os.makedirs(save_folder)
-test_save_dir = os.path.join(save_folder, 'predict')
+
+test_save_dir = args.save_folder
 if not os.path.exists(test_save_dir):
     os.makedirs(test_save_dir)
+def setup_experiment(title, logdir="./tb"):
+    experiment_name = "{}@{}".format(title, datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))
+    writer = SummaryWriter(log_dir=os.path.join(logdir, experiment_name))
+    best_model_path = f"{title}.best.pth"
+    return writer, experiment_name, best_model_path
 
-log_file_path = save_folder + '/train' + time.strftime('_%Y-%m-%d-%H-%M', time.localtime(time.time())) + '.log'
-writer = SummaryWriter()
 
 
 ##LOAD DATE
@@ -83,10 +84,13 @@ netD.apply(weights_init)
 netG = GauGANGenerator.to(device)
 netG.apply(weights_init)
 
+writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir="./tb")
+print(f"Experiment name: {experiment_name}")
+
 if args.load:
     # load network
-    resume_netG_path = os.path.join(save_folder,  '.pth')
-    resume_netD_path = os.path.join(save_folder, '.pth')
+    resume_netG_path = args.basenetG
+    resume_netD_path = args.basenetD
     print('Loading resume network', resume_netG_path, resume_netD_path)
     netG.load(resume_netG_path)
     netD.load(resume_netD_path)
@@ -99,7 +103,6 @@ criterion = ()
 
 def train():
     # Inspired by https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
-
     # Lists to keep track of progress
     num_epochs = args.max_epoch
     img_list = []
@@ -110,7 +113,7 @@ def train():
     print("Starting Training Loop...")
     for epoch in range(num_epochs):
         for i, data in enumerate(train_loader, 0):
-
+            global_i = len(train_loader) * epoch + i
             ############################
             # D network
             ###########################
@@ -120,20 +123,23 @@ def train():
             output = netD(real_cpu).view(-1)
             errD_real = criterion(output, torch.zeros_like(output))
             errD_real.backward()
-            D_x = output.mean().item()
+
+
 
             ## Train with all-fake batch
-            noise = torch.randn(data.shape[0], 256, device=device)
+            # noise = torch.randn(data.shape[0], 256, device=device)
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
             fake = netG(noise)
 
             output = netD(fake.detach()).view(-1)
             errD_fake = criterion(output, torch.ones_like(output))
             errD_fake.backward()
-            D_G_z1 = output.mean().item()
             errD = errD_real + errD_fake
             optimizerD.step()
 
+            # dump train metrics to tensorboard
+            if writer is not None:
+                writer.add_scalar(f"loss_D", errD.item(), global_i)
             ############################
             # G network
             ###########################
@@ -141,25 +147,28 @@ def train():
             output = netD(fake).view(-1)
             errG = criterion(output, torch.zeros_like(output))
             errG.backward()
-            D_G_z2 = output.mean().item()
             optimizerG.step()
-
+            if writer is not None:
+                writer.add_scalar(f"loss_G", errG.item(), global_i)
             # Output training stats
             if i % 50 == 0:
-                print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f'
-                      % (epoch, num_epochs, i, len(train_loader),
-                         errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
+                print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t'
+                      % (epoch, num_epochs, i, len(train_loader), errD.item(), errG.item()))
 
             G_losses.append(errG.item())
             D_losses.append(errD.item())
 
             # Check how the generator is doing by saving G's output on fixed_noise
-            if (iters % 500 == 0) or ((epoch == num_epochs - 1) and (i == len(train_loader) - 1)):
+            if epoch % args.save_frequency == 0:
                 with torch.no_grad():
                     fixed_noise = torch.randn(data.shape[0], 256, device=device)
                     fake = netG(fixed_noise).detach().cpu()
                 img_list.append(fake.data.cpu().numpy())
-
+                plt.imsave(os.path.join('./{}/'.format(test_save_dir ) + 'img{}.png'.format(datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))),
+                                 ((img_list[-1][0] + 1) / 2.0).transpose([1, 2, 0]), cmap='gray', interpolation="none")
+            if writer is not None:
+                writer.add_scalar(f"loss_G_epoch", np.sum(G_losses) / len(train_loader), epoch)
+                writer.add_scalar(f"loss_D_epoch", np.sum(D_losses) / len(train_loader), epoch)
             iters += 1
 
 
