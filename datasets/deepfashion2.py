@@ -13,12 +13,13 @@ def ann_to_mask(segm, h, w):
     return m
 
 class DeepFashion2Dataset(Dataset):
-    def __init__(self, root, transform=None):
+    def __init__(self, root, num_classes=14, transform=None):
         super().__init__()
         
         self.image_folder = join(root, 'image')
         self.annos_folder = join(root, 'annos')
         self.length = len(os.listdir(self.image_folder))
+        self.num_classes = num_classes
         self.transform = transform
         
     def __getitem__(self, idx):
@@ -33,19 +34,19 @@ class DeepFashion2Dataset(Dataset):
         with open(ann_path) as f:
             ann = json.load(f)
         
-        full_mask = np.zeros((height, width),
-                             dtype=np.long)
+        full_mask = np.zeros((height, width, self.num_classes),
+                             dtype=np.float32)
         for key, item in ann.items():
             if key in ['source', 'pair_id']:
                 continue
             clid = item['category_id']
             mask = ann_to_mask(item['segmentation'], height, width)
-            full_mask[mask > 0] = clid
+            full_mask[mask > 0, clid] = 1
         
         if self.transform is not None:
             augmented = self.transform(image=image, mask=full_mask)
             image = augmented['image']
-            full_mask = augmented['mask']
+            full_mask = augmented['mask'].permute(2, 0, 1)
         
         return image, full_mask
     
