@@ -4,14 +4,14 @@ from .gaugan_layers import Discriminator_block
 
 
 class MultiscaleDiscriminator(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels):
         super().__init__()
         self.avg_pool = torch.nn.AvgPool2d(kernel_size=3,
                             stride=2, padding=[1, 1],
                             count_include_pad=False)
-        self.subnetD1 = GauGANDiscriminator(nn.Module)
-        self.subnetD2 = GauGANDiscriminator(nn.Module)
-        self.subnetD3 = GauGANDiscriminator(nn.Module)
+        self.subnetD1 = GauGANDiscriminator(in_channels)
+        self.subnetD2 = GauGANDiscriminator(in_channels)
+        self.subnetD3 = GauGANDiscriminator(in_channels)
 
     def forward(self, input):
         outs = []

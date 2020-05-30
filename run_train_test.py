@@ -100,7 +100,7 @@ fixed_test_images = test_batch[0].to(device)
 fixed_test_masks = test_batch[1].to(device)
 
 ##MODE
-netD = GauGANDiscriminator(args.mask_channels + 3).to(device)
+netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
 netD.apply(weights_init)
 
 netG = GauGANGenerator(args.mask_channels, args.encoder_latent_dim, 4).to(device)
