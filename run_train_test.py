@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANGenerator
-from models.discriminator import GauGANDiscriminator
+from models.discriminator import MultiscaleDiscriminator, GauGANDiscriminator
 from utils.weights_init import weights_init
 
 
@@ -41,8 +41,8 @@ parser.add_argument('--test_frequency', default=10)
 parser.add_argument('--mode', type=str, choices=['train', 'test'], default='train')
 parser.add_argument('--weight_decay', default=5e-4,
                     type=float, help='Weight decay for SGD')
-parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-parser.add_argument('--betas', default=0.0,
+parser.add_argument('--momentum', default=0.999, type=float, help='momentum')
+parser.add_argument('--betas', default=0.5,
                     type=float)
 parser.add_argument('--load', default=False, help='resume net for retraining')
 args = parser.parse_args()
@@ -60,25 +60,37 @@ def setup_experiment(title, logdir="./tb"):
 
 
 ##LOAD DATE
-train_images_dir = 'train/image/'
-train_annos_dir = 'train/annos/'
-validation_images_dir = 'validation/image/'
-validation_annos_dir = 'validation/annos/'
-test_images_dir = 'test/image/'
-train_coco_annos = 'cocoInstances_train.json'
-validation_coco_annos = 'cocoInstances_validation.json'
+# train_images_dir = 'train/image/'
+# train_annos_dir = 'train/annos/'
+# validation_images_dir = 'validation/image/'
+# validation_annos_dir = 'validation/annos/'
+# test_images_dir = 'test/image/'
+# train_coco_annos = 'cocoInstances_train.json'
+# validation_coco_annos = 'cocoInstances_validation.json'
+# coco_images_dir = str(AUX_DATA_ROOT) + '/coco-stuff/val_images2017/'
+# coco_masks_dir = str(AUX_DATA_ROOT) + '/coco-stuff/val_labels2017/'
+coco_train_images_files = coco_images_files[:4000]
+coco_val_images_files = coco_images_files[4000:4500]
+coco_test_images_files = coco_images_files[4500:5000]
 
-train_dataset = DeepFashion2Dataset(train_images_dir,  train_coco_annos)
-val_dataset = DeepFashion2Dataset(validation_images_dir, validation_coco_annos)
+
+
+
+# train_dataset = DeepFashion2Dataset(train_images_dir,  train_coco_annos)
+# val_dataset = DeepFashion2Dataset(validation_images_dir, validation_coco_annos)
+coco_train_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_train_images_files, coco_labels_num)
+coco_val_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_val_images_files, coco_labels_num)
+coco_test_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_test_images_files, coco_labels_num)
 
 print('Loading Dataset...')
-train_loader = data_utils.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-val_loader = data_utils.DataLoader(val_dataset , batch_size=args.batch_size, shuffle=True)
+train_loader = data_utils.DataLoader(coco_train_dataset, batch_size=args.batch_size, shuffle=True)
+val_loader = data_utils.DataLoader(coco_val_dataset, batch_size=args.batch_size, shuffle=True)
+test_loader = data_utils.DataLoader(coco_test_dataset, batch_size=args.batch_size, shuffle=True)
 
 ##MODEL
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-netD = GauGANDiscriminator.to(device)
+netD = MultiscaleDiscriminator.to(device)
 netD.apply(weights_init)
 
 netG = GauGANGenerator.to(device)
