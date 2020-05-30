@@ -13,6 +13,7 @@ from tensorboardX import SummaryWriter
 import torchvision.utils as vutils
 import matplotlib.pyplot as plt
 
+from datasets.gaugan_datasets import CocoDataset
 from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANGenerator
 from models.discriminator import MultiscaleDiscriminator, GauGANDiscriminator
