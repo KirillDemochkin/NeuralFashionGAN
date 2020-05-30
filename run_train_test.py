@@ -20,6 +20,7 @@ from utils.weights_init import weights_init
 
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--data_root', help='path to data')
 parser.add_argument('--basenetG', help='pretrained base model')
 parser.add_argument('--basenetD', help='pretrained base model')
 parser.add_argument('--jaccard_threshold', default=0.5,
@@ -67,8 +68,10 @@ def setup_experiment(title, logdir="./tb"):
 # test_images_dir = 'test/image/'
 # train_coco_annos = 'cocoInstances_train.json'
 # validation_coco_annos = 'cocoInstances_validation.json'
-# coco_images_dir = str(AUX_DATA_ROOT) + '/coco-stuff/val_images2017/'
-# coco_masks_dir = str(AUX_DATA_ROOT) + '/coco-stuff/val_labels2017/'
+coco_images_dir = str(args.data_root) + '/coco-stuff/val_images2017/'
+coco_masks_dir = str(args.data_root) + '/coco-stuff/val_labels2017/'
+coco_images_files = os.listdir(coco_images_dir)
+coco_images_files.sort()
 coco_train_images_files = coco_images_files[:4000]
 coco_val_images_files = coco_images_files[4000:4500]
 coco_test_images_files = coco_images_files[4500:5000]
@@ -90,7 +93,7 @@ test_loader = data_utils.DataLoader(coco_test_dataset, batch_size=args.batch_siz
 ##MODEL
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-netD = MultiscaleDiscriminator.to(device)
+netD = GauGANDiscriminator.to(device)
 netD.apply(weights_init)
 
 netG = GauGANGenerator.to(device)
