@@ -153,7 +153,8 @@ def train():
             real_preds, real_feats = netD(real_image, mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
-            fake = netG(netE(real_image), mask)
+            latent_code, mu, sigma = netE(real_image)
+            fake = netG(latent_code, mask)
             fake_preds, fake_feats = netD(fake.detach(), mask)
             errD = 0.0
             for fp, rp in zip(fake_preds, real_preds):
@@ -178,6 +179,8 @@ def train():
                 errG_fm += losses.perceptual_loss(ff, rf, args.fm_lambda)
             errG = errG_fm + errG_hinge
             errG.backward()
+            dkl = losses.KL_divergence(mu, sigma)
+            dkl.backward()
             optimizerG.step()
             optimizerE.step()
             if writer is not None:
