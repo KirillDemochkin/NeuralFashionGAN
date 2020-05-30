@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANGenerator
 from models.discriminator import GauGANDiscriminator
-from models.weights_init import weights_init
+from utils.weights_init import weights_init
 
 
 parser = argparse.ArgumentParser()
