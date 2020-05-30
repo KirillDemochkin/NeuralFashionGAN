@@ -13,5 +13,10 @@ class GauGANDiscriminator(nn.Module):
 
     def forward(self, x, mask):
         input = torch.cat((x, mask), 1)
-        x = self.out_conv(self.block_4(self.block_3(self.block_2(self.block_1(input)))))
-        return x
+        x1 = self.block_1(input)
+        x2 = self.block_2(x1)
+        x3 = self.block_3(x2)
+        x4 = self.block_4(x3)
+        preds = self.out_conv(x4)
+        feats = (x1, x2, x3, x4)
+        return preds, torch.cat([r.view(r.size(0), -1) for r in feats], dim=1)
