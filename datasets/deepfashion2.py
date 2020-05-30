@@ -27,7 +27,8 @@ class DeepFashion2Dataset(Dataset):
         
         image_path = join(self.image_folder, name+'.jpg')
         image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
-        image = image.astype(np.float32) / 255.
+        image = image.astype(np.float32) / 127.5 - 1.0
+
         width, height = image.shape[1], image.shape[0]
         
         ann_path = join(self.annos_folder, name+'.json')
