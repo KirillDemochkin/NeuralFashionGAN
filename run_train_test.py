@@ -125,9 +125,8 @@ def train():
             errD_real.backward()
 
 
-
             ## Train with all-fake batch
-            # noise = torch.randn(data.shape[0], 256, device=device)
+            noise = torch.randn(data.shape[0], 256, device=device)
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
             fake = netG(noise)
 
