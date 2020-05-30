@@ -16,13 +16,16 @@ import matplotlib.pyplot as plt
 from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANGenerator
 from models.discriminator import MultiscaleDiscriminator, GauGANDiscriminator
+from models.encoders import BasicEncoder
 from utils.weights_init import weights_init
-
+from utils import losses
+import utils.visualization as vutils
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_root', help='path to data')
-parser.add_argument('--basenetG', help='pretrained base model')
-parser.add_argument('--basenetD', help='pretrained base model')
+parser.add_argument('--basenetG', help='pretrained generator model')
+parser.add_argument('--basenetD', help='pretrained discriminator model')
+parser.add_argument('--basenetE', help='pretrained encoder model')
 parser.add_argument('--jaccard_threshold', default=0.5,
                     type=float, help='Min Jaccard index for matching')
 parser.add_argument('-b', '--batch_size', default=8,
@@ -45,19 +48,24 @@ parser.add_argument('--weight_decay', default=5e-4,
 parser.add_argument('--momentum', default=0.999, type=float, help='momentum')
 parser.add_argument('--betas', default=0.5,
                     type=float)
+parser.add_argument('--fm_lambda', default=10, type=float)
+parser.add_argument('--encoder_latent_dim', default=256, type=float)
+parser.add_argument('--mask_channels', default=8, type=float)  # TODO find out real values for datasets
 parser.add_argument('--load', default=False, help='resume net for retraining')
 args = parser.parse_args()
 
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 test_save_dir = args.save_folder
 if not os.path.exists(test_save_dir):
     os.makedirs(test_save_dir)
+
+
 def setup_experiment(title, logdir="./tb"):
     experiment_name = "{}@{}".format(title, datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))
     writer = SummaryWriter(log_dir=os.path.join(logdir, experiment_name))
     best_model_path = f"{title}.best.pth"
     return writer, experiment_name, best_model_path
-
 
 
 ##LOAD DATE
@@ -76,9 +84,6 @@ coco_train_images_files = coco_images_files[:4000]
 coco_val_images_files = coco_images_files[4000:4500]
 coco_test_images_files = coco_images_files[4500:5000]
 
-
-
-
 # train_dataset = DeepFashion2Dataset(train_images_dir,  train_coco_annos)
 # val_dataset = DeepFashion2Dataset(validation_images_dir, validation_coco_annos)
 coco_train_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_train_images_files, coco_labels_num)
@@ -90,14 +95,19 @@ train_loader = data_utils.DataLoader(coco_train_dataset, batch_size=args.batch_s
 val_loader = data_utils.DataLoader(coco_val_dataset, batch_size=args.batch_size, shuffle=True)
 test_loader = data_utils.DataLoader(coco_test_dataset, batch_size=args.batch_size, shuffle=True)
 
-##MODEL
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+test_batch = next(iter(val_loader))
+fixed_test_images = test_batch[0].to(device)
+fixed_test_masks = test_batch[1].to(device)
 
-netD = GauGANDiscriminator.to(device)
+##MODE
+netD = GauGANDiscriminator(args.mask_channels + 3).to(device)
 netD.apply(weights_init)
 
-netG = GauGANGenerator.to(device)
+netG = GauGANGenerator(args.mask_channels, args.encoder_latent_dim, 4).to(device)
 netG.apply(weights_init)
+
+netE = BasicEncoder(args.encoder_latent_dim).to(device)
+netE.apply(weights_init)
 
 writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir="./tb")
 print(f"Experiment name: {experiment_name}")
@@ -106,27 +116,31 @@ if args.load:
     # load network
     resume_netG_path = args.basenetG
     resume_netD_path = args.basenetD
-    print('Loading resume network', resume_netG_path, resume_netD_path)
+    resume_encoder_path = args.basenetE
+    print('Loading resume network', resume_netG_path, resume_netD_path, resume_encoder_path)
     netG.load(resume_netG_path)
     netD.load(resume_netD_path)
+    netE.load(resume_encoder_path)
 
-
-optimizerD = optim.Adam(netD.parameters(), lr=args.lr, betas=(args.betas, args.momentum), weight_decay=args.weight_decay)
-optimizerG = optim.Adam(netG.parameters(), lr=args.lr, betas=(args.betas, args.momentum), weight_decay=args.weight_decay)
-criterion = ()
+optimizerD = optim.Adam(netD.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
+                        weight_decay=args.weight_decay)
+optimizerG = optim.Adam(netG.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
+                        weight_decay=args.weight_decay)
+optimizerE = optim.Adam(netE.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
+                        weight_decay=args.weight_decay)
 
 
 def train():
     # Inspired by https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
     # Lists to keep track of progress
     num_epochs = args.max_epoch
-    img_list = []
-    G_losses = []
-    D_losses = []
+    #img_list = []
     iters = 0
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print("Starting Training Loop...")
     for epoch in range(num_epochs):
+        G_losses = []
+        D_losses = []
         for i, data in enumerate(train_loader, 0):
             global_i = len(train_loader) * epoch + i
             ############################
@@ -134,21 +148,17 @@ def train():
             ###########################
             ## Train with all-real batch
             netD.zero_grad()
-            real_cpu = data.to(device)
-            output = netD(real_cpu).view(-1)
-            errD_real = criterion(output, torch.zeros_like(output))
-            errD_real.backward()
+            real_image, mask = data[0].to(device), data[1].to(device)
 
-
+            real_preds, real_feats = netD(real_image, mask)
             ## Train with all-fake batch
-            noise = torch.randn(data.shape[0], 256, device=device)
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
-            fake = netG(noise)
-
-            output = netD(fake.detach()).view(-1)
-            errD_fake = criterion(output, torch.ones_like(output))
-            errD_fake.backward()
-            errD = errD_real + errD_fake
+            fake = netG(netE(real_image), mask)
+            fake_preds, fake_feats = netD(fake.detach(), mask)
+            errD = 0.0
+            for fp, rp in zip(fake_preds, real_preds):
+                errD += losses.hinge_loss_discriminator(fp, rp)
+            errD.backward()
             optimizerD.step()
 
             # dump train metrics to tensorboard
@@ -158,14 +168,22 @@ def train():
             # G network
             ###########################
             netG.zero_grad()
-            output = netD(fake).view(-1)
-            errG = criterion(output, torch.zeros_like(output))
+            netE.zero_grad()
+            fake_preds, fake_feats = netD(fake, mask).view(-1)
+            errG_hinge = 0.0
+            for fp in fake_preds:
+                errG_hinge += losses.hinge_loss_generator(fp)
+            errG_fm = 0.0
+            for ff, rf in zip(fake_feats, real_feats):
+                errG_fm += losses.perceptual_loss(ff, rf, args.fm_lambda)
+            errG = errG_fm + errG_hinge
             errG.backward()
             optimizerG.step()
+            optimizerE.step()
             if writer is not None:
                 writer.add_scalar(f"loss_G", errG.item(), global_i)
             # Output training stats
-            if i % 50 == 0:
+            if i % 100 == 99:
                 print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t'
                       % (epoch, num_epochs, i, len(train_loader), errD.item(), errG.item()))
 
@@ -175,15 +193,24 @@ def train():
             # Check how the generator is doing by saving G's output on fixed_noise
             if epoch % args.save_frequency == 0:
                 with torch.no_grad():
-                    fixed_noise = torch.randn(data.shape[0], 256, device=device)
-                    fake = netG(fixed_noise).detach().cpu()
-                img_list.append(fake.data.cpu().numpy())
-                plt.imsave(os.path.join('./{}/'.format(test_save_dir ) + 'img{}.png'.format(datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))),
-                                 ((img_list[-1][0] + 1) / 2.0).transpose([1, 2, 0]), cmap='gray', interpolation="none")
+                    netG.eval()
+                    netE.eval()
+                    test_generated = netG(netE(fixed_test_images), fixed_test_masks).detach().cpu()
+                    netG.train()
+                    netE.train()
+                #img_list.append(fake.data.numpy())
+                vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True)
+                #plt.imsave(os.path.join(
+                    #'./{}/'.format(test_save_dir) + 'img{}.png'.format(datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))),
+                           #((img_list[-1][0] + 1) / 2.0).transpose([1, 2, 0]), cmap='gray', interpolation="none")
             if writer is not None:
                 writer.add_scalar(f"loss_G_epoch", np.sum(G_losses) / len(train_loader), epoch)
                 writer.add_scalar(f"loss_D_epoch", np.sum(D_losses) / len(train_loader), epoch)
             iters += 1
+
+
+def test_net():
+    pass
 
 
 if __name__ == '__main__':

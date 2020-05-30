@@ -31,7 +31,7 @@ class MultiscaleDiscriminator(nn.Module):
 
 
 class GauGANDiscriminator(nn.Module):
-    def __init__(self,in_channels):
+    def __init__(self, in_channels):
         super(GauGANDiscriminator, self).__init__()
         self.block_1 = Discriminator_block(in_channels * 2, 64,  normalization=False)
         self.block_2 = Discriminator_block(64, 128)
