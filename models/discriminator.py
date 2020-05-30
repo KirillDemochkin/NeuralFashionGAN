@@ -6,21 +6,28 @@ from .gaugan_layers import Discriminator_block
 class MultiscaleDiscriminator(nn.Module):
     def __init__(self):
         super().__init__()
-        self.opt = opt
         self.avg_pool = torch.nn.AvgPool2d(kernel_size=3,
                             stride=2, padding=[1, 1],
                             count_include_pad=False)
-        subnetD1 = GauGANDiscriminator(nn.Module)
-        subnetD2 = GauGANDiscriminator(nn.Module)
+        self.subnetD1 = GauGANDiscriminator(nn.Module)
+        self.subnetD2 = GauGANDiscriminator(nn.Module)
+        self.subnetD3 = GauGANDiscriminator(nn.Module)
 
     def forward(self, input):
-        out = []
-        out1 = subnetD1(input)
+        outs = []
+        preds = []
+        out, pred = self.subnetD1(input)
         input = self.avg_pool(input)
-        out.append(out1)
-        out2 = subnetD2(input)
-        out.append(out2)
-        return out
+        outs.append(out)
+        preds.append(pred)
+        out, pred = self.subnetD2(input)
+        input = self.avg_pool(input)
+        outs.append(out)
+        preds.append(pred)
+        out, pred = self.subnetD3(input)
+        outs.append(out)
+        preds.append(pred)
+        return outs, preds
 
 
 class GauGANDiscriminator(nn.Module):
