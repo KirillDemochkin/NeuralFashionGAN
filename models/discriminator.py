@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from .gaugan_layers import Discriminator_block
 
+
 class GauGANDiscriminator(nn.Module):
     def __init__(self,in_channels):
         super(GauGANDiscriminator, self).__init__()
