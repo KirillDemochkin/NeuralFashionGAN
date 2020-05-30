@@ -35,8 +35,9 @@ class BasicEncoder(nn.Module):
         x = self.conv_6(x)
         x = torch.reshape(x, (-1, 8192))
         mu = self.mu_fc(x)
-        sigma = self.sigma_fc(x)
-        return torch.empty_like(mu).normal_(0, 1) * sigma + mu
+        std = self.sigma_fc(x).exp()
+        eps = std.data.new(std.size()).normal_()
+        return eps.mul(std).add(mu)
 
 
 class Vgg19Full(torch.nn.Module):
