@@ -2,24 +2,41 @@ import torch
 import torch.nn as nn
 import torchvision
 
-class BasicEncoder(nn.Module):
-    def __init__(self,in_channels):
-        super(BasicEncoder, self).__init__()
-        self.block_1 = Discriminator_block(in_channels * 2, 64,  normalization=False)
-        self.block_2 = Discriminator_block(64, 128)
-        self.block_3 = Discriminator_block(128, 256)
-        self.block_4 = Discriminator_block(256, 512)
-        self.out_conv = nn.Conv2d(512, 1, kernel_size=4, padding=1)
 
-    def forward(self, x, mask):
-        input = torch.cat((x, mask), 1)
-        x1 = self.block_1(input)
-        x2 = self.block_2(x1)
-        x3 = self.block_3(x2)
-        x4 = self.block_4(x3)
-        preds = self.out_conv(x4)
-        feats = (x1, x2, x3, x4)
-        return preds, torch.cat([r.view(r.size(0), -1) for r in feats], dim=1)
+class BasicDownsamplingConvBlock(nn.Module):
+    def __init__(self, inc, nc):
+        super(BasicDownsamplingConvBlock, self).__init__()
+        self.conv = nn.Conv2d(inc, nc, kernel_size=3, stride=2, padding=1)
+        self.norm = nn.InstanceNorm2d(nc)
+        self.leaky = nn.LeakyReLU(0.2, inplace=True)
+
+    def forward(self, x):
+        return self.leaky(self.norm(self.conv(x)))
+
+
+class BasicEncoder(nn.Module):
+    def __init__(self, latent_dim):
+        super(BasicEncoder, self).__init__()
+        self.conv_1 = BasicDownsamplingConvBlock(3, 64)
+        self.conv_2 = BasicDownsamplingConvBlock(64, 128)
+        self.conv_3 = BasicDownsamplingConvBlock(128, 256)
+        self.conv_4 = BasicDownsamplingConvBlock(256, 512)
+        self.conv_5 = BasicDownsamplingConvBlock(512, 512)
+        self.conv_6 = BasicDownsamplingConvBlock(512, 512)
+        self.mu_fc = nn.Linear(8192, latent_dim)
+        self.sigma_fc = nn.Linear(8192, latent_dim)
+
+    def forward(self, x):
+        x = self.conv_1(x)
+        x = self.conv_2(x)
+        x = self.conv_3(x)
+        x = self.conv_4(x)
+        x = self.conv_5(x)
+        x = self.conv_6(x)
+        x = torch.reshape(x, (-1, 8192))
+        mu = self.mu_fc(x)
+        sigma = self.sigma_fc(x)
+        return torch.empty_like(mu).normal_(0, 1) * sigma + mu
 
 
 class Vgg19Full(torch.nn.Module):
