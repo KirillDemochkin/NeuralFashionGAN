@@ -1,7 +1,7 @@
-import os
 import numpy as np
 import cv2
-
+from PIL import Image
+import torchvision.transforms.functional as TF
 import matplotlib.pyplot as plt
 
 import torch
@@ -37,27 +37,32 @@ class CocoDataset(Dataset):
 
 
         image_path = example["image_path"]
-        image = cv2.imread(image_path)
-
+        image = Image.open(image_path)
         mask_path = example["mask_path"]
-        mask = cv2.imread(mask_path)
+        mask = Image.open(mask_path)
 
-        image = cv2.resize(image, (self.new_w, self.new_h),
-                           interpolation=cv2.INTER_NEAREST) # shape = (256, 256, 3)
-        mask = cv2.resize(mask, (self.new_w, self.new_h),
-                          interpolation=cv2.INTER_NEAREST) # shape = (256, 256, 3)
+        image = TF.resize(image, (self.new_w, self.new_h))
+        mask = TF.resize(mask, (self.new_w, self.new_h))  # shape = (256, 256, 3)
+
+        # image = cv2.resize(image, (self.new_w, self.new_h),
+        #                    interpolation=cv2.INTER_NEAREST) # shape = (256, 256, 3)
+        # mask = cv2.resize(mask, (self.new_w, self.new_h),
+        #                   interpolation=cv2.INTER_NEAREST) # shape = (256, 256, 3)
 
         # normalize
-        image = image / 255.0
+        image = np.asarray(image)
+        mask = np.asarray(mask)
+        image = image / 127.5 - 1
 
         # convert numpy -> torch
         image = np.transpose(image, (2, 0, 1))  # shape = (3, 256, 256)
         image = image.astype(np.float32)
 
-        mask_image = mask[:, :, 0]  # shape = (256, 256)
+        # mask_image = mask[:, :, 0]  # shape = (256, 256)
+        mask_image = mask
         mask = np.stack([mask_image == i for i in range(1, self.labels_num + 1)],
                         axis=2)  # shape = (256, 256, labels_num)
-        mask = np.transpose(mask, (2, 0, 1)).astype(np.int)  # shape = (labels_num, 256, 256)
+        mask = np.transpose(mask, (2, 0, 1)).astype(np.float32)  # shape = (labels_num, 256, 256)
 
         image = torch.from_numpy(image)
         mask = torch.from_numpy(mask)
