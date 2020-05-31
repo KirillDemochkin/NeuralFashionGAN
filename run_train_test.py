@@ -148,6 +148,7 @@ def train():
     print("Starting Training Loop...")
     sys.stdout.flush()
     for epoch in range(num_epochs):
+        start = time.time()
         G_losses = []
         D_losses = []
         for i, data in enumerate(train_loader, 0):
@@ -205,6 +206,9 @@ def train():
             D_losses.append(errD)
 
             # Check how the generator is doing by saving G's output on fixed_noise
+            end = time.time()
+            hours, rem = divmod(end - start, 3600)
+            minutes, seconds = divmod(rem, 60)
             if epoch % args.save_frequency == 0:
                 with torch.no_grad():
                     netG.eval()
@@ -213,6 +217,7 @@ def train():
                     netG.train()
                     netE.train()
                 #img_list.append(fake.data.numpy())
+                print("Epoch %d - Elapsed time: {:0>2}:{:0>2}:{:05.2f}".format(epoch, int(hours), int(minutes), seconds))
                 tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True)
                 writer.add_image('generated', tim, epoch)
                 torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG' + best_model_path ))
