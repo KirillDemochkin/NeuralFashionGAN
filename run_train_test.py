@@ -107,10 +107,10 @@ fixed_test_masks= test_batch[1].to(device)
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
 netD.apply(weights_init)
 
-netG = GauGANGenerator(args.mask_channels, args.encoder_latent_dim, 4).to(device)
+netG = GauGANGenerator(args.mask_channels, args.encoder_latent_dim, 1).to(device)
 netG.apply(weights_init)
 
-netE = BasicEncoder(args.encoder_latent_dim).to(device)
+netE = BasicEncoder(args.encoder_latent_dim, reduce_size=4).to(device)
 netE.apply(weights_init)
 
 writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir=os.path.join(args.root_path, "tb"))

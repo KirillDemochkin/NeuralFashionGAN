@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 from PIL import Image
+import torchvision
 import torchvision.transforms.functional as TF
 import matplotlib.pyplot as plt
 
@@ -16,6 +17,7 @@ class CocoDataset(Dataset):
 
         self.new_h = 256
         self.new_w = 256
+        self.reduce_factor = 4
 
         self.examples = []
 
@@ -41,8 +43,12 @@ class CocoDataset(Dataset):
         mask_path = example["mask_path"]
         mask = Image.open(mask_path)
 
-        image = TF.center_crop(image, (self.new_w, self.new_h))
-        mask = TF.center_crop(mask, (self.new_w, self.new_h))  # shape = (256, 256, 3)
+        image = TF.resize(image, (self.new_w, self.new_h))
+        mask = TF.resize(mask, (self.new_w, self.new_h))  # shape = (256, 256, 3)
+        i, j, h, w = torchvision.transforms.RandomCrop.get_params(
+            image, output_size=(self.new_w//self.reduce_factor, self.new_h//self.reduce_factor))
+        image = TF.crop(image, i, j, h, w)
+        mask = TF.crop(mask, i, j, h, w)
 
         # image = cv2.resize(image, (self.new_w, self.new_h),
         #                    interpolation=cv2.INTER_NEAREST) # shape = (256, 256, 3)

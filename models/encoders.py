@@ -15,16 +15,17 @@ class BasicDownsamplingConBlock(nn.Module):
 
 
 class BasicEncoder(nn.Module):
-    def __init__(self, latent_dim):
+    def __init__(self, latent_dim, reduce_size=1):
         super(BasicEncoder, self).__init__()
+        self.rs = reduce_size
         self.conv_1 = BasicDownsamplingConBlock(3, 64)
         self.conv_2 = BasicDownsamplingConBlock(64, 128)
         self.conv_3 = BasicDownsamplingConBlock(128, 256)
         self.conv_4 = BasicDownsamplingConBlock(256, 512)
         self.conv_5 = BasicDownsamplingConBlock(512, 512)
         self.conv_6 = BasicDownsamplingConBlock(512, 512)
-        self.mu_fc = nn.Linear(8192, latent_dim)
-        self.sigma_fc = nn.Linear(8192, latent_dim)
+        self.mu_fc = nn.Linear(8192//reduce_size, latent_dim)
+        self.sigma_fc = nn.Linear(8192//reduce_size, latent_dim)
 
     def forward(self, x):
         x = self.conv_1(x)
@@ -33,7 +34,7 @@ class BasicEncoder(nn.Module):
         x = self.conv_4(x)
         x = self.conv_5(x)
         x = self.conv_6(x)
-        x = torch.reshape(x, (-1, 8192))
+        x = torch.reshape(x, (-1, 8192//self.rs))
         mu = self.mu_fc(x)
         sigma = self.sigma_fc(x)
         std = sigma.exp()
