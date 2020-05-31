@@ -4,7 +4,7 @@ import time
 
 import numpy as np
 import os
-import datetime
+from datetime import datetime
 import torch
 import torch.nn
 import torch.utils.data as data_utils
@@ -14,7 +14,7 @@ import torchvision.utils as vutils
 import matplotlib.pyplot as plt
 
 from datasets.gaugan_datasets import CocoDataset
-from datasets.deepfashion2 import DeepFashion2Dataset
+# from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANGenerator
 from models.discriminator import MultiscaleDiscriminator, GauGANDiscriminator
 from models.encoders import BasicEncoder
@@ -23,7 +23,8 @@ from utils import losses
 import utils.visualization as vutils
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_root', help='path to data')
+parser.add_argument('--data_root', help='path to data', type=str, default= 'C:/Users/Polinka/PycharmProjects')
+parser.add_argument('--root_path', help='path', type=str, default='C:/Users/Polinka/PycharmProjects/NeuralFashionGAN')
 parser.add_argument('--basenetG', help='pretrained generator model')
 parser.add_argument('--basenetD', help='pretrained discriminator model')
 parser.add_argument('--basenetE', help='pretrained encoder model')
@@ -51,7 +52,7 @@ parser.add_argument('--betas', default=0.5,
                     type=float)
 parser.add_argument('--fm_lambda', default=10, type=float)
 parser.add_argument('--encoder_latent_dim', default=256, type=float)
-parser.add_argument('--mask_channels', default=8, type=float)  # TODO find out real values for datasets
+parser.add_argument('--mask_channels', default=182, type=float)
 parser.add_argument('--load', default=False, help='resume net for retraining')
 args = parser.parse_args()
 
@@ -63,7 +64,7 @@ if not os.path.exists(test_save_dir):
 
 
 def setup_experiment(title, logdir="./tb"):
-    experiment_name = "{}@{}".format(title, datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))
+    experiment_name = "{}@{}".format(title, datetime.now().strftime("%d.%m.%Y-%H:%M:%S")).replace(":","_")
     writer = SummaryWriter(log_dir=os.path.join(logdir, experiment_name))
     best_model_path = f"{title}.best.pth"
     return writer, experiment_name, best_model_path
@@ -84,7 +85,7 @@ coco_images_files.sort()
 coco_train_images_files = coco_images_files[:4000]
 coco_val_images_files = coco_images_files[4000:4500]
 coco_test_images_files = coco_images_files[4500:5000]
-
+coco_labels_num = 182
 # train_dataset = DeepFashion2Dataset(train_images_dir,  train_coco_annos)
 # val_dataset = DeepFashion2Dataset(validation_images_dir, validation_coco_annos)
 coco_train_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_train_images_files, coco_labels_num)
@@ -98,7 +99,7 @@ test_loader = data_utils.DataLoader(coco_test_dataset, batch_size=args.batch_siz
 
 test_batch = next(iter(val_loader))
 fixed_test_images = test_batch[0].to(device)
-fixed_test_masks = test_batch[1].to(device)
+fixed_test_masks= test_batch[1].to(device)
 
 ##MODE
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
@@ -110,7 +111,7 @@ netG.apply(weights_init)
 netE = BasicEncoder(args.encoder_latent_dim).to(device)
 netE.apply(weights_init)
 
-writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir="./tb")
+writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir=os.path.join(args.root_path, "tb"))
 print(f"Experiment name: {experiment_name}")
 
 if args.load:
