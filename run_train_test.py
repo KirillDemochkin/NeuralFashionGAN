@@ -23,26 +23,26 @@ from utils import losses
 import utils.visualization as vutils
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_root', help='path to data', type=str, default= 'E:/NeuralFashionGAN/data')
-parser.add_argument('--root_path', help='path', type=str, default='E:/NeuralFashionGAN')
+parser.add_argument('--data_root', help='path to data', type=str, default= '/home/kdemochkin/NeuralFashionGAN/data')
+parser.add_argument('--root_path', help='path', type=str, default='/home/kdemochkin/NeuralFashionGAN')
 parser.add_argument('--basenetG', help='pretrained generator model')
 parser.add_argument('--basenetD', help='pretrained discriminator model')
 parser.add_argument('--basenetE', help='pretrained encoder model')
 parser.add_argument('--jaccard_threshold', default=0.5,
                     type=float, help='Min Jaccard index for matching')
-parser.add_argument('-b', '--batch_size', default=8,
+parser.add_argument('-b', '--batch_size', default=32,
                     type=int, help='Batch size for training')
-parser.add_argument('--num_workers', default=0,
+parser.add_argument('--num_workers', default=3,
                     type=int, help='Number of workers used in dataloading')
 parser.add_argument('--cuda', default=True,
                     type=bool, help='Use cuda to train model')
 parser.add_argument('--lr', '--learning-rate',
-                    default=1e-3, type=float, help='initial learning rate')
-parser.add_argument('-epoch', '--max_epoch', default=30,
+                    default=0.0002, type=float, help='initial learning rate')
+parser.add_argument('-epoch', '--max_epoch', default=200,
                     type=int, help='max epoch for training')
 parser.add_argument('--save_folder', default='img/',
                     help='Location to save checkpoint models')
-parser.add_argument('--save_frequency', default=10)
+parser.add_argument('--save_frequency', default=1)
 parser.add_argument('--test_frequency', default=10)
 parser.add_argument('--mode', type=str, choices=['train', 'test'], default='train')
 parser.add_argument('--weight_decay', default=5e-4,
@@ -194,19 +194,22 @@ def train():
                 print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t'
                       % (epoch, num_epochs, i, len(train_loader), errD.item(), errG.item()))
 
-            G_losses.append(errG.item())
-            D_losses.append(errD.item())
+            G_losses.append(errG)
+            D_losses.append(errD)
 
             # Check how the generator is doing by saving G's output on fixed_noise
             if epoch % args.save_frequency == 0:
                 with torch.no_grad():
                     netG.eval()
                     netE.eval()
-                    test_generated = netG(netE(fixed_test_images), fixed_test_masks).detach().cpu()
+                    test_generated = netG(netE(fixed_test_images)[0], fixed_test_masks).detach().cpu()
                     netG.train()
                     netE.train()
                 #img_list.append(fake.data.numpy())
                 vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True)
+                torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG', best_model_path ))
+                torch.save(netD.state_dict(), os.path.join(args.root_path, 'NetD', best_model_path))
+                torch.save(netE.state_dict(), os.path.join(args.root_path, 'NetE', best_model_path))
                 #plt.imsave(os.path.join(
                     #'./{}/'.format(test_save_dir) + 'img{}.png'.format(datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))),
                            #((img_list[-1][0] + 1) / 2.0).transpose([1, 2, 0]), cmap='gray', interpolation="none")
