@@ -11,7 +11,7 @@ import torch.nn
 import torch.utils.data as data_utils
 import torch.optim as optim
 from tensorboardX import SummaryWriter
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from datasets.gaugan_datasets import CocoDataset
 # from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANGenerator
@@ -110,7 +110,7 @@ netD.apply(weights_init)
 netG = GauGANGenerator(args.mask_channels, args.encoder_latent_dim, 4).to(device)
 netG.apply(weights_init)
 
-netE = BasicEncoder(args.encoder_latent_dim, reduce_size=4).to(device)
+netE = BasicEncoder(args.encoder_latent_dim).to(device)
 netE.apply(weights_init)
 
 writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir=os.path.join(args.root_path, "tb"))
