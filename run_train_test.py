@@ -181,7 +181,7 @@ def train():
             errG_hinge.backward(retain_graph=True)
             errG_fm = 0.0
             for ff, rf in zip(fake_feats, real_feats):
-                errG_fm += losses.perceptual_loss(ff, rf, args.fm_lambda)
+                errG_fm += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
             errG_fm.backward()
             errG = errG_hinge.item() + errG_fm.item()
 
