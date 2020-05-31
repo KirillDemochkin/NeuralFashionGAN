@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from datasets.gaugan_datasets import CocoDataset
 # from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANGenerator
-from models.discriminator import MultiscaleDiscriminator, GauGANDiscriminator
+from models.discriminator import MultiscaleDiscriminator
 from models.encoders import BasicEncoder
 from utils.weights_init import weights_init
 from utils import losses
