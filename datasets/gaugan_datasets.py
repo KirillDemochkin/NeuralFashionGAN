@@ -61,6 +61,7 @@ class CocoDataset(Dataset):
         except Exception as ex:
             print(ex)
             print(image.shape)
+            print(image_path)
             return None
 
         # mask_image = mask[:, :, 0]  # shape = (256, 256)
