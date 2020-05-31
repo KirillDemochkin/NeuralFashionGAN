@@ -172,6 +172,8 @@ def train():
             ###########################
             netG.zero_grad()
             netE.zero_grad()
+            dkl = losses.KL_divergence(mu, sigma)
+            dkl.backward(retain_graph=True)
             fake_preds, fake_feats = netD(fake, mask) ##view -1
             errG_hinge = 0.0
             for fp in fake_preds:
@@ -180,10 +182,9 @@ def train():
             errG_fm = 0.0
             for ff, rf in zip(fake_feats, real_feats):
                 errG_fm += losses.perceptual_loss(ff, rf, args.fm_lambda)
-            errG_fm.backward(retain_graph=True)
+            errG_fm.backward()
             errG = errG_hinge.item() + errG_fm.item()
-            dkl = losses.KL_divergence(mu, sigma)
-            dkl.backward()
+
             optimizerE.step()
             if writer is not None:
                 writer.add_scalar(f"loss_G", errG, global_i)
