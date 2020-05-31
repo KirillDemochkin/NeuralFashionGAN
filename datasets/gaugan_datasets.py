@@ -37,7 +37,7 @@ class CocoDataset(Dataset):
 
 
         image_path = example["image_path"]
-        image = Image.open(image_path)
+        image = Image.open(image_path).convert("RGB")
         mask_path = example["mask_path"]
         mask = Image.open(mask_path)
 
