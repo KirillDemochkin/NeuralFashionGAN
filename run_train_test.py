@@ -207,23 +207,24 @@ def train():
             end = time.time()
             hours, rem = divmod(end - start, 3600)
             minutes, seconds = divmod(rem, 60)
-            if epoch % args.save_frequency == 0:
-                with torch.no_grad():
-                    netG.eval()
-                    netE.eval()
-                    test_generated = netG(netE(fixed_test_images)[0], fixed_test_masks).detach().cpu()
-                    netG.train()
-                    netE.train()
-                #img_list.append(fake.data.numpy())
-                print("Epoch %d - Elapsed time: {:0>2}:{:0>2}:{:05.2f}".format(epoch, int(hours), int(minutes), seconds))
-                tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True)
-                writer.add_image('generated', tim, epoch, dataformats='HWC')
-                torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG' + best_model_path ))
-                torch.save(netD.state_dict(), os.path.join(args.root_path, 'NetD' + best_model_path))
-                torch.save(netE.state_dict(), os.path.join(args.root_path, 'NetE' + best_model_path))
-                #plt.imsave(os.path.join(
-                    #'./{}/'.format(test_save_dir) + 'img{}.png'.format(datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))),
-                           #((img_list[-1][0] + 1) / 2.0).transpose([1, 2, 0]), cmap='gray', interpolation="none")
+        if epoch % args.save_frequency == 0:
+            with torch.no_grad():
+                netG.eval()
+                netE.eval()
+                test_generated = netG(netE(fixed_test_images)[0], fixed_test_masks).detach().cpu()
+                netG.train()
+                netE.train()
+            #img_list.append(fake.data.numpy())
+            print("Epoch %d - Elapsed time: {:0>2}:{:0>2}:{:05.2f}".format(epoch, int(hours), int(minutes), seconds))
+            sys.stdout.flush()
+            tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True)
+            writer.add_image('generated', tim, epoch, dataformats='HWC')
+            torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG' + best_model_path ))
+            torch.save(netD.state_dict(), os.path.join(args.root_path, 'NetD' + best_model_path))
+            torch.save(netE.state_dict(), os.path.join(args.root_path, 'NetE' + best_model_path))
+            #plt.imsave(os.path.join(
+                #'./{}/'.format(test_save_dir) + 'img{}.png'.format(datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))),
+                       #((img_list[-1][0] + 1) / 2.0).transpose([1, 2, 0]), cmap='gray', interpolation="none")
             if writer is not None:
                 writer.add_scalar(f"loss_G_epoch", np.sum(G_losses) / len(train_loader), epoch)
                 writer.add_scalar(f"loss_D_epoch", np.sum(D_losses) / len(train_loader), epoch)
