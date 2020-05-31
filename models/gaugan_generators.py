@@ -29,10 +29,10 @@ class GauGANGenerator(nn.Module):
         self.spd_blck_6 = SPADE_ResBlock(1 / 2, latent_dim, latent_dim // 2, mask_channels)
         self.upsample_6 = nn.UpsamplingNearest2d(scale_factor=2)
 
-        self.spd_blck_7 = SPADE_ResBlock(1, latent_dim // 2, latent_dim // 4, mask_channels)
-        self.upsample_7 = nn.UpsamplingNearest2d(scale_factor=2)
+        # self.spd_blck_7 = SPADE_ResBlock(1, latent_dim // 2, latent_dim // 4, mask_channels)
+        # self.upsample_7 = nn.UpsamplingNearest2d(scale_factor=2)
 
-        self.out_conv = nn.Conv2d(latent_dim // 4, 3, kernel_size=3, padding=1)
+        self.out_conv = nn.Conv2d(latent_dim // 2, 3, kernel_size=3, padding=1)
         self.tanh = nn.Tanh()
 
     def forward(self, x, mask):
@@ -44,6 +44,6 @@ class GauGANGenerator(nn.Module):
         x = self.upsample_4(self.spd_blck_4(x, mask))
         x = self.upsample_5(self.spd_blck_5(x, mask))
         x = self.upsample_6(self.spd_blck_6(x, mask))
-        x = self.upsample_7(self.spd_blck_7(x, mask))
+        # x = self.upsample_7(self.spd_blck_7(x, mask))
         x = self.tanh(self.out_conv(x))
         return x
