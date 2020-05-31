@@ -23,8 +23,8 @@ from utils import losses
 import utils.visualization as vutils
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_root', help='path to data', type=str, default= 'C:/Users/Polinka/PycharmProjects')
-parser.add_argument('--root_path', help='path', type=str, default='C:/Users/Polinka/PycharmProjects/NeuralFashionGAN')
+parser.add_argument('--data_root', help='path to data', type=str, default= 'E:/NeuralFashionGAN/data')
+parser.add_argument('--root_path', help='path', type=str, default='E:/NeuralFashionGAN')
 parser.add_argument('--basenetG', help='pretrained generator model')
 parser.add_argument('--basenetD', help='pretrained discriminator model')
 parser.add_argument('--basenetE', help='pretrained encoder model')
@@ -176,17 +176,17 @@ def train():
             errG_hinge = 0.0
             for fp in fake_preds:
                 errG_hinge += losses.hinge_loss_generator(fp)
+            errG_hinge.backward(retain_graph=True)
             errG_fm = 0.0
             for ff, rf in zip(fake_feats, real_feats):
                 errG_fm += losses.perceptual_loss(ff, rf, args.fm_lambda)
-            errG = errG_fm + errG_hinge
-            errG.backward()
+            errG_fm.backward(retain_graph=True)
+            errG = errG_hinge.item() + errG_fm.item()
             dkl = losses.KL_divergence(mu, sigma)
             dkl.backward()
-            optimizerG.step()
             optimizerE.step()
             if writer is not None:
-                writer.add_scalar(f"loss_G", errG.item(), global_i)
+                writer.add_scalar(f"loss_G", errG, global_i)
             # Output training stats
             if i % 100 == 99:
                 print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t'
