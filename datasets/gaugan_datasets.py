@@ -55,8 +55,13 @@ class CocoDataset(Dataset):
         image = image / 127.5 - 1
 
         # convert numpy -> torch
-        image = np.transpose(image, (2, 0, 1))  # shape = (3, 256, 256)
-        image = image.astype(np.float32)
+        try:
+            image = np.transpose(image, (2, 0, 1))  # shape = (3, 256, 256)
+            image = image.astype(np.float32)
+        except Exception as ex:
+            print(ex)
+            print(image.shape)
+            return None
 
         # mask_image = mask[:, :, 0]  # shape = (256, 256)
         mask_image = mask
