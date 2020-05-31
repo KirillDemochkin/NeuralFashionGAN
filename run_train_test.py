@@ -172,7 +172,7 @@ def train():
             ###########################
             netG.zero_grad()
             netE.zero_grad()
-            fake_preds, fake_feats = netD(fake, mask).view(-1)
+            fake_preds, fake_feats = netD(fake, mask) ##view -1
             errG_hinge = 0.0
             for fp in fake_preds:
                 errG_hinge += losses.hinge_loss_generator(fp)
