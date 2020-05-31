@@ -207,9 +207,9 @@ def train():
                     netE.train()
                 #img_list.append(fake.data.numpy())
                 vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True)
-                torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG', best_model_path ))
-                torch.save(netD.state_dict(), os.path.join(args.root_path, 'NetD', best_model_path))
-                torch.save(netE.state_dict(), os.path.join(args.root_path, 'NetE', best_model_path))
+                torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG' + best_model_path ))
+                torch.save(netD.state_dict(), os.path.join(args.root_path, 'NetD' + best_model_path))
+                torch.save(netE.state_dict(), os.path.join(args.root_path, 'NetE' + best_model_path))
                 #plt.imsave(os.path.join(
                     #'./{}/'.format(test_save_dir) + 'img{}.png'.format(datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))),
                            #((img_list[-1][0] + 1) / 2.0).transpose([1, 2, 0]), cmap='gray', interpolation="none")
