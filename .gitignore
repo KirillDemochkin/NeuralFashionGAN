@@ -131,3 +131,11 @@ dmypy.json
 .idea/
 
 *.DESKTOP-D93QFU2
+
+data/ade20k-outdoors-20200530T215530Z-001/
+
+data/coco-stuff-20200530T215534Z-001/
+
+data/ade20k-outdoors-20200530T215530Z-001.zip
+
+*.zip
