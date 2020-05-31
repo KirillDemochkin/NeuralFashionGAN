@@ -14,9 +14,9 @@ from tensorboardX import SummaryWriter
 #import matplotlib.pyplot as plt
 from datasets.gaugan_datasets import CocoDataset
 # from datasets.deepfashion2 import DeepFashion2Dataset
-from models.gaugan_generators import GauGANGenerator
+from models.gaugan_generators import GauGANUnetGenerator
 from models.discriminator import MultiscaleDiscriminator
-from models.encoders import BasicEncoder
+from models.encoders import UnetEncoder
 from utils.weights_init import weights_init
 from utils import losses
 from utils import visualization as vutils
@@ -51,7 +51,8 @@ parser.add_argument('--betas', default=0.5,
                     type=float)
 parser.add_argument('--fm_lambda', default=10, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
-parser.add_argument('--encoder_latent_dim', default=256, type=float)
+parser.add_argument('--unet_ch', default=4, type=float)
+parser.add_argument('--mask_channels', default=182, type=float)
 parser.add_argument('--mask_channels', default=182, type=float)
 parser.add_argument('--load', default=False, help='resume net for retraining')
 args = parser.parse_args()
@@ -108,10 +109,10 @@ _ = vutils.save_image(fixed_test_images.cpu().data[:16], '!test.png', normalize=
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
 netD.apply(weights_init)
 
-netG = GauGANGenerator(args.mask_channels, args.encoder_latent_dim, 4).to(device)
+netG = GauGANUnetGenerator(args.mask_channels, args.encoder_latent_dim, 4, args.unet_ch).to(device)
 netG.apply(weights_init)
 
-netE = BasicEncoder(args.encoder_latent_dim).to(device)
+netE = UnetEncoder(args.encoder_latent_dim, args.unet_ch).to(device)
 netE.apply(weights_init)
 
 writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir=os.path.join(args.root_path, "tb"))
@@ -162,8 +163,8 @@ def train():
             real_preds, real_feats = netD(real_image, mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
-            latent_code, mu, sigma = netE(real_image)
-            fake = netG(latent_code, mask)
+            latent_code, mu, sigma, skips = netE(real_image)
+            fake = netG(latent_code, mask, skips)
             fake_preds, fake_feats = netD(fake.detach(), mask)
             errD = 0.0
             for fp, rp in zip(fake_preds, real_preds):
@@ -213,7 +214,8 @@ def train():
             with torch.no_grad():
                 netG.eval()
                 netE.eval()
-                test_generated = netG(netE(fixed_test_images)[0], fixed_test_masks).detach().cpu()
+                test_code, _, _, test_skips = netE(fixed_test_images)
+                test_generated = netG(test_code, fixed_test_masks, test_skips).detach().cpu()
                 netG.train()
                 netE.train()
             #img_list.append(fake.data.numpy())

@@ -15,9 +15,8 @@ class BasicDownsamplingConBlock(nn.Module):
 
 
 class BasicEncoder(nn.Module):
-    def __init__(self, latent_dim, reduce_size=1):
+    def __init__(self, latent_dim):
         super(BasicEncoder, self).__init__()
-        self.rs = reduce_size
         self.conv_1 = BasicDownsamplingConBlock(3, 64)
         self.conv_2 = BasicDownsamplingConBlock(64, 128)
         self.conv_3 = BasicDownsamplingConBlock(128, 256)
@@ -40,6 +39,42 @@ class BasicEncoder(nn.Module):
         std = sigma.exp()
         eps = std.data.new(std.size()).normal_()
         return eps.mul(std).add(mu), mu, sigma
+
+
+class UnetEncoder(nn.Module):
+    def __init__(self, latent_dim, skip_dim):
+        super(UnetEncoder, self).__init__()
+        self.conv_1 = BasicDownsamplingConBlock(3, 64)
+        self.skip_1 = nn.Sequential(nn.Conv2d(64, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        self.conv_2 = BasicDownsamplingConBlock(64, 128)
+        self.skip_2 = nn.Sequential(nn.Conv2d(128, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        self.conv_3 = BasicDownsamplingConBlock(128, 256)
+        self.skip_3 = nn.Sequential(nn.Conv2d(256, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        self.conv_4 = BasicDownsamplingConBlock(256, 512)
+        self.skip_4 = nn.Sequential(nn.Conv2d(512, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        #self.conv_5 = BasicDownsamplingConBlock(512, 512)
+        #self.conv_6 = BasicDownsamplingConBlock(512, 512)
+        self.mu_fc = nn.Linear(8192, latent_dim)
+        self.sigma_fc = nn.Linear(8192, latent_dim)
+
+    def forward(self, x):
+        skips = []
+        x = self.conv_1(x)
+        skips.append(self.skip_1(x))
+        x = self.conv_2(x)
+        skips.append(self.skip_2(x))
+        x = self.conv_3(x)
+        skips.append(self.skip_3(x))
+        x = self.conv_4(x)
+        skips.append(self.skip_4(x))
+        #x = self.conv_5(x)
+        #x = self.conv_6(x)
+        x = torch.reshape(x, (-1, 8192))
+        mu = self.mu_fc(x)
+        sigma = self.sigma_fc(x)
+        std = sigma.exp()
+        eps = std.data.new(std.size()).normal_()
+        return eps.mul(std).add(mu), mu, sigma, skips
 
 
 class Vgg19Full(torch.nn.Module):
