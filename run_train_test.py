@@ -11,9 +11,7 @@ import torch.nn
 import torch.utils.data as data_utils
 import torch.optim as optim
 from tensorboardX import SummaryWriter
-import torchvision.utils as vutils
 import matplotlib.pyplot as plt
-
 from datasets.gaugan_datasets import CocoDataset
 # from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANGenerator
@@ -21,7 +19,7 @@ from models.discriminator import MultiscaleDiscriminator
 from models.encoders import BasicEncoder
 from utils.weights_init import weights_init
 from utils import losses
-import utils.visualization as vutils
+from utils import visualization as vutils
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_root', help='path to data', type=str, default= '/home/kdemochkin/NeuralFashionGAN/data')
@@ -219,7 +217,7 @@ def train():
                 #img_list.append(fake.data.numpy())
                 print("Epoch %d - Elapsed time: {:0>2}:{:0>2}:{:05.2f}".format(epoch, int(hours), int(minutes), seconds))
                 tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True)
-                writer.add_image('generated', tim, epoch)
+                writer.add_image('generated', tim, epoch, dataformats='HWC')
                 torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG' + best_model_path ))
                 torch.save(netD.state_dict(), os.path.join(args.root_path, 'NetD' + best_model_path))
                 torch.save(netE.state_dict(), os.path.join(args.root_path, 'NetE' + best_model_path))
