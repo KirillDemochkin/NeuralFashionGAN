@@ -51,6 +51,7 @@ parser.add_argument('--momentum', default=0.999, type=float, help='momentum')
 parser.add_argument('--betas', default=0.5,
                     type=float)
 parser.add_argument('--fm_lambda', default=10, type=float)
+parser.add_argument('--kl_lambda', default=0.05, type=float)
 parser.add_argument('--encoder_latent_dim', default=256, type=float)
 parser.add_argument('--mask_channels', default=182, type=float)
 parser.add_argument('--load', default=False, help='resume net for retraining')
@@ -172,7 +173,7 @@ def train():
             ###########################
             netG.zero_grad()
             netE.zero_grad()
-            dkl = losses.KL_divergence(mu, sigma)
+            dkl = args.kl_lambda * losses.KL_divergence(mu, sigma)
             dkl.backward(retain_graph=True)
             fake_preds, fake_feats = netD(fake, mask) ##view -1
             errG_hinge = 0.0
