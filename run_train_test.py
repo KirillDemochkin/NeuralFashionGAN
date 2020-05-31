@@ -185,6 +185,7 @@ def train():
             errG_fm.backward()
             errG = errG_hinge.item() + errG_fm.item()
 
+            optimizerG.step()
             optimizerE.step()
             if writer is not None:
                 writer.add_scalar(f"loss_G", errG, global_i)
