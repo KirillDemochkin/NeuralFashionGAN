@@ -3,9 +3,9 @@ import torch.nn as nn
 import torchvision
 
 
-class BasicDownsamplingConvBlock(nn.Module):
+class BasicDownsamplingConBlock(nn.Module):
     def __init__(self, inc, nc):
-        super(BasicDownsamplingConvBlock, self).__init__()
+        super(BasicDownsamplingConBlock, self).__init__()
         self.conv = nn.Conv2d(inc, nc, kernel_size=3, stride=2, padding=1)
         self.norm = nn.InstanceNorm2d(nc)
         self.leaky = nn.LeakyReLU(0.2, inplace=True)
@@ -17,12 +17,12 @@ class BasicDownsamplingConvBlock(nn.Module):
 class BasicEncoder(nn.Module):
     def __init__(self, latent_dim):
         super(BasicEncoder, self).__init__()
-        self.conv_1 = BasicDownsamplingConvBlock(3, 64)
-        self.conv_2 = BasicDownsamplingConvBlock(64, 128)
-        self.conv_3 = BasicDownsamplingConvBlock(128, 256)
-        self.conv_4 = BasicDownsamplingConvBlock(256, 512)
-        self.conv_5 = BasicDownsamplingConvBlock(512, 512)
-        self.conv_6 = BasicDownsamplingConvBlock(512, 512)
+        self.conv_1 = BasicDownsamplingConBlock(3, 64)
+        self.conv_2 = BasicDownsamplingConBlock(64, 128)
+        self.conv_3 = BasicDownsamplingConBlock(128, 256)
+        self.conv_4 = BasicDownsamplingConBlock(256, 512)
+        self.conv_5 = BasicDownsamplingConBlock(512, 512)
+        self.conv_6 = BasicDownsamplingConBlock(512, 512)
         self.mu_fc = nn.Linear(8192, latent_dim)
         self.sigma_fc = nn.Linear(8192, latent_dim)
 
