@@ -101,7 +101,8 @@ test_loader = data_utils.DataLoader(coco_test_dataset, batch_size=args.batch_siz
 
 test_batch = next(iter(val_loader))
 fixed_test_images = test_batch[0].to(device)
-fixed_test_masks= test_batch[1].to(device)
+fixed_test_masks = test_batch[1].to(device)
+_ = vutils.save_image(fixed_test_images.cpu().data[:16], '!test.png', normalize=True)
 
 ##MODE
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
