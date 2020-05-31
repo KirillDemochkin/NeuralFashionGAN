@@ -13,18 +13,20 @@ class MultiscaleDiscriminator(nn.Module):
         self.subnetD2 = GauGANDiscriminator(in_channels)
         self.subnetD3 = GauGANDiscriminator(in_channels)
 
-    def forward(self, input):
+    def forward(self, x, mask):
         outs = []
         preds = []
-        out, pred = self.subnetD1(input)
-        input = self.avg_pool(input)
+        out, pred = self.subnetD1(x, mask)
+        x = self.avg_pool(x)
+        mask = self.avg_pool(mask)
         outs.append(out)
         preds.append(pred)
-        out, pred = self.subnetD2(input)
-        input = self.avg_pool(input)
+        out, pred = self.subnetD2(x, mask)
+        x = self.avg_pool(x)
+        mask = self.avg_pool(mask)
         outs.append(out)
         preds.append(pred)
-        out, pred = self.subnetD3(input)
+        out, pred = self.subnetD3(x, mask)
         outs.append(out)
         preds.append(pred)
         return outs, preds
@@ -33,11 +35,11 @@ class MultiscaleDiscriminator(nn.Module):
 class GauGANDiscriminator(nn.Module):
     def __init__(self, in_channels):
         super(GauGANDiscriminator, self).__init__()
-        self.block_1 = Discriminator_block(in_channels * 2, 64,  normalization=False)
+        self.block_1 = Discriminator_block(in_channels, 64,  normalization=False)
         self.block_2 = Discriminator_block(64, 128)
         self.block_3 = Discriminator_block(128, 256)
         self.block_4 = Discriminator_block(256, 512)
-        self.out_conv = nn.Conv2d(512, 1, kernel_size=4, stride=1, padding=1)
+        self.out_conv = nn.Conv2d(512, 1, kernel_size=4, padding=1)
 
     def forward(self, x, mask):
         input = torch.cat((x, mask), 1)
