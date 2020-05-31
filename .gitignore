@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 
 .idea/
+
+*.DESKTOP-D93QFU2
