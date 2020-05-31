@@ -4,6 +4,7 @@ import time
 
 import numpy as np
 import os
+import sys
 from datetime import datetime
 import torch
 import torch.nn
@@ -58,7 +59,8 @@ parser.add_argument('--load', default=False, help='resume net for retraining')
 args = parser.parse_args()
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
+print(device)
+sys.stdout.flush()
 test_save_dir = args.save_folder
 if not os.path.exists(test_save_dir):
     os.makedirs(test_save_dir)
@@ -94,6 +96,7 @@ coco_val_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_val_images_
 coco_test_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_test_images_files, coco_labels_num)
 
 print('Loading Dataset...')
+sys.stdout.flush()
 train_loader = data_utils.DataLoader(coco_train_dataset, batch_size=args.batch_size, shuffle=True)
 val_loader = data_utils.DataLoader(coco_val_dataset, batch_size=args.batch_size, shuffle=True)
 test_loader = data_utils.DataLoader(coco_test_dataset, batch_size=args.batch_size, shuffle=True)
@@ -114,6 +117,7 @@ netE.apply(weights_init)
 
 writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir=os.path.join(args.root_path, "tb"))
 print(f"Experiment name: {experiment_name}")
+sys.stdout.flush()
 
 if args.load:
     # load network
@@ -121,6 +125,7 @@ if args.load:
     resume_netD_path = args.basenetD
     resume_encoder_path = args.basenetE
     print('Loading resume network', resume_netG_path, resume_netD_path, resume_encoder_path)
+    sys.stdout.flush()
     netG.load(resume_netG_path)
     netD.load(resume_netD_path)
     netE.load(resume_encoder_path)
@@ -141,6 +146,7 @@ def train():
     iters = 0
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print("Starting Training Loop...")
+    sys.stdout.flush()
     for epoch in range(num_epochs):
         G_losses = []
         D_losses = []
