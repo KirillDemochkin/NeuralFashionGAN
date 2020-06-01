@@ -23,8 +23,8 @@ class BasicEncoder(nn.Module):
         self.conv_4 = BasicDownsamplingConBlock(256, 512)
         self.conv_5 = BasicDownsamplingConBlock(512, 512)
         self.conv_6 = BasicDownsamplingConBlock(512, 512)
-        self.mu_fc = nn.Linear(8192, latent_dim)
-        self.sigma_fc = nn.Linear(8192, latent_dim)
+        self.mu_fc = nn.Linear(8192//4, latent_dim)
+        self.sigma_fc = nn.Linear(8192//4, latent_dim)
 
     def forward(self, x):
         x = self.conv_1(x)
@@ -33,7 +33,7 @@ class BasicEncoder(nn.Module):
         x = self.conv_4(x)
         x = self.conv_5(x)
         x = self.conv_6(x)
-        x = torch.reshape(x, (-1, 8192))
+        x = torch.reshape(x, (-1, 8192//4))
         mu = self.mu_fc(x)
         sigma = self.sigma_fc(x)
         std = sigma.exp()
