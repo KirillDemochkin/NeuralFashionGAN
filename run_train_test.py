@@ -16,7 +16,7 @@ from datasets.gaugan_datasets import CocoDataset
 # from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANGenerator
 from models.discriminator import MultiscaleDiscriminator
-from models.encoders import BasicEncoder
+from models.encoders import BasicEncoder, Vgg19Full
 from utils.weights_init import weights_init
 from utils import losses
 from utils import visualization as vutils
@@ -114,6 +114,10 @@ netG.apply(weights_init)
 netE = BasicEncoder(args.encoder_latent_dim).to(device)
 netE.apply(weights_init)
 
+vgg = Vgg19Full()
+vgg.eval()
+
+
 writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir=os.path.join(args.root_path, "tb"))
 print(f"Experiment name: {experiment_name}")
 sys.stdout.flush()
@@ -181,6 +185,12 @@ def train():
             netE.zero_grad()
             dkl = args.kl_lambda * losses.KL_divergence(mu, sigma)
             dkl.backward(retain_graph=True)
+            fake_vgg_feats = vgg(fake)
+            real_vgg_feats = vgg(real_image)
+            errG_p = 0.0
+            for ff, rf in zip(fake_vgg_feats, real_vgg_feats):
+                errG_p += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
+            errG_p.backward(retain_graph=True)
             fake_preds, fake_feats = netD(fake, mask) ##view -1
             errG_hinge = 0.0
             for fp in fake_preds:
