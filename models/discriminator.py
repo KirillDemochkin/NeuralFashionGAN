@@ -22,13 +22,13 @@ class MultiscaleDiscriminator(nn.Module):
         outs.append(out)
         preds.append(pred)
         out, pred = self.subnetD2(x, mask)
-        #x = self.avg_pool(x)
-        #mask = self.avg_pool(mask)
+        x = self.avg_pool(x)
+        mask = self.avg_pool(mask)
         outs.append(out)
         preds.append(pred)
-        #out, pred = self.subnetD3(x, mask)
-        #outs.append(out)
-        #preds.append(pred)
+        out, pred = self.subnetD3(x, mask)
+        outs.append(out)
+        preds.append(pred)
         return outs, preds
 
 
