@@ -3,14 +3,17 @@ import json
 import numpy as np
 import cv2
 from os.path import join
+import torch
 from torch.utils.data import Dataset
 from pycocotools import mask as maskUtils
+
 
 def ann_to_mask(segm, h, w):
     rles = maskUtils.frPyObjects(segm, h, w)
     rle = maskUtils.merge(rles)
     m = maskUtils.decode(rle)
     return m
+
 
 class DeepFashion2Dataset(Dataset):
     def __init__(self, root, num_classes=13, transform=None, return_masked_image=False):
@@ -55,7 +58,9 @@ class DeepFashion2Dataset(Dataset):
         if self.return_masked_image:
             masked_image = image.clone()
             masked_image[:, full_mask.sum(dim=0) > 0] = 1.
-            return image, full_mask, masked_image
+            loss_mask = torch.ones_like(masked_image)
+            loss_mask[:, full_mask.sum(dim=0) > 0] = 0.
+            return image, full_mask, masked_image, loss_mask
         else:
             return image, full_mask
     

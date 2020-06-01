@@ -20,3 +20,7 @@ def hinge_loss_generator(fake_preds):
 
 def perceptual_loss(fake_feats, real_feats, lmbda):
     return lmbda * torch.nn.functional.l1_loss(fake_feats, real_feats, reduction='mean')
+
+
+def masked_l1(predict, target, mask):
+    return torch.sum(torch.abs((predict-target)*mask)) / torch.sum(mask)

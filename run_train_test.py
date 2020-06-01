@@ -60,7 +60,7 @@ parser.add_argument('--momentum', default=0.999, type=float, help='momentum')
 parser.add_argument('--betas', default=0.5,
                     type=float)
 parser.add_argument('--fm_lambda', default=10, type=float)
-parser.add_argument('--cycle_lambda', default=5, type=float)
+parser.add_argument('--cycle_lambda', default=10, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
 parser.add_argument('--encoder_latent_dim', default=256, type=float)
 parser.add_argument('--unet_ch', default=4, type=float)
@@ -152,7 +152,7 @@ def train():
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print("Starting Training Loop...")
     sys.stdout.flush()
-    l1_criterion = torch.nn.L1Loss(reduction='mean')
+
     for epoch in range(num_epochs):
         start = time.time()
         G_losses = []
@@ -164,7 +164,7 @@ def train():
             ###########################
             ## Train with all-real batch
             netD.zero_grad()
-            real_image, mask, masked_image = data[0].to(device), data[1].to(device), data[2].to(device)
+            real_image, mask, masked_image, loss_mask = data[0].to(device), data[1].to(device), data[2].to(device), data[3].to(device)
 
             real_preds, real_feats = netD(real_image, mask)
             ## Train with all-fake batch
@@ -188,7 +188,7 @@ def train():
             netE.zero_grad()
             dkl = args.kl_lambda * losses.KL_divergence(mu, sigma)
             dkl.backward(retain_graph=True)
-            l1 = l1_criterion(fake, masked_image) * args.cycle_lambda
+            l1 = losses.masked_l1(fake, masked_image, loss_mask) * args.cycle_lambda
             l1.backward(retain_graph=True)
             fake_vgg_f = vgg(fake)
             real_vgg_f = vgg(real_image)
