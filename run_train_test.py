@@ -33,7 +33,7 @@ from albumentations.pytorch import ToTensorV2
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_root', help='path to data', type=str, default= '/home/kdemochkin/deepfashion/NeuralFashionGAN/data/')
-parser.add_argument('--root_path', help='path', type=str, default='/home/kdemochkin/deepfashion/')
+parser.add_argument('--root_path', help='path', type=str, default='/home/kdemochkin/deepfashion/NeuralFashionGAN')
 parser.add_argument('--basenetG', help='pretrained generator model')
 parser.add_argument('--basenetD', help='pretrained discriminator model')
 parser.add_argument('--basenetE', help='pretrained encoder model')
