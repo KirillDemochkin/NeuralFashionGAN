@@ -6,7 +6,7 @@ import torchvision
 class BasicDownsamplingConBlock(nn.Module):
     def __init__(self, inc, nc):
         super(BasicDownsamplingConBlock, self).__init__()
-        self.conv = nn.Conv2d(inc, nc, kernel_size=3, stride=2, padding=1)
+        self.conv = nn.Conv2d(inc, nc, kernel_size=4, stride=2, padding=1)
         self.norm = nn.InstanceNorm2d(nc)
         self.leaky = nn.LeakyReLU(0.2, inplace=True)
 
@@ -21,8 +21,8 @@ class BasicEncoder(nn.Module):
         self.conv_2 = BasicDownsamplingConBlock(64, 128)
         self.conv_3 = BasicDownsamplingConBlock(128, 256)
         self.conv_4 = BasicDownsamplingConBlock(256, 512)
-        #self.conv_5 = BasicDownsamplingConBlock(512, 512)
-        #self.conv_6 = BasicDownsamplingConBlock(512, 512)
+        self.conv_5 = BasicDownsamplingConBlock(512, 512)
+        self.conv_6 = BasicDownsamplingConBlock(512, 512)
         self.mu_fc = nn.Linear(8192, latent_dim)
         self.sigma_fc = nn.Linear(8192, latent_dim)
 
@@ -31,8 +31,8 @@ class BasicEncoder(nn.Module):
         x = self.conv_2(x)
         x = self.conv_3(x)
         x = self.conv_4(x)
-        #x = self.conv_5(x)
-        #x = self.conv_6(x)
+        x = self.conv_5(x)
+        x = self.conv_6(x)
         x = torch.reshape(x, (-1, 8192))
         mu = self.mu_fc(x)
         sigma = self.sigma_fc(x)
@@ -65,6 +65,8 @@ class MappingNetwork(nn.Module):
     def forward(self, x):
         x = torch.div(torch.sub(x, torch.mean(x, dim=1, keepdim=True)), torch.std(x, dim=1, keepdim=True))
         return self.net(x)
+
+
 
 
 class UnetEncoder(nn.Module):
