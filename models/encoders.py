@@ -42,8 +42,9 @@ class BasicEncoder(nn.Module):
 
 
 class UnetEncoder(nn.Module):
-    def __init__(self, latent_dim, skip_dim):
+    def __init__(self, latent_dim, skip_dim, rs):
         super(UnetEncoder, self).__init__()
+        self.rs = rs
         self.conv_1 = BasicDownsamplingConBlock(3, 64)
         self.skip_1 = nn.Sequential(nn.Conv2d(64, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
         self.conv_2 = BasicDownsamplingConBlock(64, 128)
@@ -52,10 +53,12 @@ class UnetEncoder(nn.Module):
         self.skip_3 = nn.Sequential(nn.Conv2d(256, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
         self.conv_4 = BasicDownsamplingConBlock(256, 512)
         self.skip_4 = nn.Sequential(nn.Conv2d(512, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
-        #self.conv_5 = BasicDownsamplingConBlock(512, 512)
-        #self.conv_6 = BasicDownsamplingConBlock(512, 512)
-        self.mu_fc = nn.Linear(8192, latent_dim)
-        self.sigma_fc = nn.Linear(8192, latent_dim)
+        self.conv_5 = BasicDownsamplingConBlock(512, 512)
+        self.skip_5 = nn.Sequential(nn.Conv2d(512, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        self.conv_6 = BasicDownsamplingConBlock(512, 512)
+        self.skip_6 = nn.Sequential(nn.Conv2d(512, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        self.mu_fc = nn.Linear(8192//(rs**2), latent_dim)
+        self.sigma_fc = nn.Linear(8192//(rs**2), latent_dim)
 
     def forward(self, x):
         skips = []
@@ -67,9 +70,11 @@ class UnetEncoder(nn.Module):
         skips.append(self.skip_3(x))
         x = self.conv_4(x)
         skips.append(self.skip_4(x))
-        #x = self.conv_5(x)
-        #x = self.conv_6(x)
-        x = torch.reshape(x, (-1, 8192))
+        x = self.conv_5(x)
+        skips.append(self.skip_5(x))
+        x = self.conv_6(x)
+        skips.append(self.skip_6(x))
+        x = torch.reshape(x, (-1, 8192//(self.rs**2)))
         mu = self.mu_fc(x)
         sigma = self.sigma_fc(x)
         std = sigma.exp()
@@ -152,4 +157,4 @@ class Vgg19Full(torch.nn.Module):
         h_relu15 = self.slice15(h_relu14)
         h_relu16 = self.slice16(h_relu15)
         res = (h_relu1, h_relu2, h_relu3, h_relu4, h_relu5, h_relu6, h_relu7, h_relu8, h_relu9, h_relu10, h_relu11, h_relu12, h_relu13, h_relu14, h_relu15, h_relu16)
-        return torch.cat([r.view(r.size(0), -1) for r in res], dim=1)
+        return [r.view(r.size(0), -1) for r in res]

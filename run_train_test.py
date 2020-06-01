@@ -16,7 +16,7 @@ from datasets.gaugan_datasets import CocoDataset
 from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANUnetGenerator
 from models.discriminator import MultiscaleDiscriminator
-from models.encoders import UnetEncoder
+from models.encoders import UnetEncoder, Vgg19Full
 from utils.weights_init import weights_init
 from utils import losses
 from utils import visualization as vutils
@@ -32,8 +32,8 @@ from albumentations import (
 from albumentations.pytorch import ToTensorV2
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_root', help='path to data', type=str, default= 'C:/Users/Polinka/PycharmProjects/Deepfashion')
-parser.add_argument('--root_path', help='path', type=str, default='C:/Users/Polinka/PycharmProjects')
+parser.add_argument('--data_root', help='path to data', type=str, default= '/home/kdemochkin/deepfashion/NeuralFashionGAN/data/')
+parser.add_argument('--root_path', help='path', type=str, default='/home/kdemochkin/deepfashion/')
 parser.add_argument('--basenetG', help='pretrained generator model')
 parser.add_argument('--basenetD', help='pretrained discriminator model')
 parser.add_argument('--basenetE', help='pretrained encoder model')
@@ -60,6 +60,7 @@ parser.add_argument('--momentum', default=0.999, type=float, help='momentum')
 parser.add_argument('--betas', default=0.5,
                     type=float)
 parser.add_argument('--fm_lambda', default=10, type=float)
+parser.add_argument('--cycle_lambda', default=5, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
 parser.add_argument('--encoder_latent_dim', default=256, type=float)
 parser.add_argument('--unet_ch', default=4, type=float)
@@ -82,7 +83,7 @@ def setup_experiment(title, logdir="./tb"):
     return writer, experiment_name, best_model_path
 
 
-##LOAD DATE
+##LOAD DATA
 
 resize_width = resize_height = 64
 crop_width = crop_height = 64
@@ -92,30 +93,34 @@ transform = Compose([Resize(resize_height, resize_width),
                     ToTensorV2()])
 
 
-train_dataset= DeepFashion2Dataset(os.path.join(args.data_root, 'train'),  transform=transform, return_masked_image= True )
-val_dataset= DeepFashion2Dataset(os.path.join(args.data_root, 'validation'),  transform=transform, return_masked_image= True )
+train_dataset = DeepFashion2Dataset(os.path.join(args.data_root, 'validation'),  transform=transform, return_masked_image=True)
+#val_dataset = DeepFashion2Dataset(os.path.join(args.data_root, 'validation'),  transform=transform, return_masked_image= True )
 
 print('Loading Dataset...')
 sys.stdout.flush()
 train_loader = data_utils.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-val_loader = data_utils.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
+#val_loader = data_utils.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
 
-test_batch = next(iter(val_loader))
+test_batch = next(iter(train_loader))
 fixed_test_images = test_batch[2].to(device)
 fixed_test_masks = test_batch[1].to(device)
+
 _ = vutils.save_image(fixed_test_images.cpu().data[:16], '!test.png', normalize=True)
 
 ##MODE
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
 netD.apply(weights_init)
 
-netG = GauGANUnetGenerator(args.mask_channels, args.encoder_latent_dim, 4, args.unet_ch).to(device)
+netG = GauGANUnetGenerator(args.mask_channels, args.encoder_latent_dim, 1, args.unet_ch).to(device)
 netG.apply(weights_init)
 
-netE = UnetEncoder(args.encoder_latent_dim, args.unet_ch).to(device)
+netE = UnetEncoder(args.encoder_latent_dim, args.unet_ch, 4).to(device)
 netE.apply(weights_init)
 
-writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir=os.path.join(args.root_path, "tb"))
+vgg = Vgg19Full().to(device)
+vgg.eval()
+
+writer, experiment_name, best_model_path = setup_experiment("DeepFashionBaseline", logdir=os.path.join(args.root_path, "tb"))
 print(f"Experiment name: {experiment_name}")
 sys.stdout.flush()
 
@@ -147,6 +152,7 @@ def train():
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print("Starting Training Loop...")
     sys.stdout.flush()
+    l1_criterion = torch.nn.L1Loss(reduction='mean')
     for epoch in range(num_epochs):
         start = time.time()
         G_losses = []
@@ -158,12 +164,12 @@ def train():
             ###########################
             ## Train with all-real batch
             netD.zero_grad()
-            real_image, mask = data[0].to(device), data[1].to(device)
+            real_image, mask, masked_image = data[0].to(device), data[1].to(device), data[2].to(device)
 
             real_preds, real_feats = netD(real_image, mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
-            latent_code, mu, sigma, skips = netE(real_image)
+            latent_code, mu, sigma, skips = netE(masked_image)
             fake = netG(latent_code, mask, skips)
             fake_preds, fake_feats = netD(fake.detach(), mask)
             errD = 0.0
@@ -182,7 +188,15 @@ def train():
             netE.zero_grad()
             dkl = args.kl_lambda * losses.KL_divergence(mu, sigma)
             dkl.backward(retain_graph=True)
-            fake_preds, fake_feats = netD(fake, mask) ##view -1
+            l1 = l1_criterion(fake, masked_image) * args.cycle_lambda
+            l1.backward(retain_graph=True)
+            fake_vgg_f = vgg(fake)
+            real_vgg_f = vgg(real_image)
+            errG_p = 0.0
+            for ff, rf in zip(fake_vgg_f, real_vgg_f):
+                errG_p += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
+            errG_p.backward(retain_graph=True)
+            fake_preds, fake_feats = netD(fake, mask)
             errG_hinge = 0.0
             for fp in fake_preds:
                 errG_hinge += losses.hinge_loss_generator(fp)
@@ -191,7 +205,7 @@ def train():
             for ff, rf in zip(fake_feats, real_feats):
                 errG_fm += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
             errG_fm.backward()
-            errG = errG_hinge.item() + errG_fm.item()
+            errG = errG_hinge.item() + errG_fm.item() + errG_p.item() + l1.item()
 
             optimizerG.step()
             optimizerE.step()
