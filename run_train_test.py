@@ -108,10 +108,10 @@ _ = vutils.save_image(fixed_test_images.cpu().data[:16], '!test.png', normalize=
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
 netD.apply(weights_init)
 
-netG = GauGANGenerator(args.mask_channels, args.encoder_latent_dim, 4).to(device)
+netG = GauGANGenerator(args.mask_channels, args.encoder_latent_dim, 1).to(device)
 netG.apply(weights_init)
 
-netE = BasicEncoder(args.encoder_latent_dim).to(device)
+netE = BasicEncoder(args.encoder_latent_dim, reduce_size=4).to(device)
 netE.apply(weights_init)
 
 vgg = Vgg19Full()

@@ -3,7 +3,7 @@ import cv2
 from PIL import Image
 import torchvision
 import torchvision.transforms.functional as TF
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 import torch
 from torch.utils.data import Dataset
