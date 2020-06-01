@@ -85,8 +85,8 @@ def setup_experiment(title, logdir="./tb"):
 
 ##LOAD DATA
 
-resize_width = resize_height = 64
-crop_width = crop_height = 64
+resize_width = resize_height = 128
+crop_width = crop_height = 128
 
 transform = Compose([Resize(resize_height, resize_width),
                     HorizontalFlip(p=0.5),
@@ -111,10 +111,10 @@ _ = vutils.save_image(fixed_test_images.cpu().data[:16], '!test.png', normalize=
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
 netD.apply(weights_init)
 
-netG = GauGANUnetGenerator(args.mask_channels, args.encoder_latent_dim, 1, args.unet_ch).to(device)
+netG = GauGANUnetGenerator(args.mask_channels, args.encoder_latent_dim, 2, args.unet_ch).to(device)
 netG.apply(weights_init)
 
-netE = UnetEncoder(args.encoder_latent_dim, args.unet_ch, 4).to(device)
+netE = UnetEncoder(args.encoder_latent_dim, args.unet_ch, 2).to(device)
 netE.apply(weights_init)
 
 vgg = Vgg19Full().to(device)
