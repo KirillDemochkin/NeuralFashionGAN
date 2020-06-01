@@ -41,8 +41,8 @@ class CocoDataset(Dataset):
         mask_path = example["mask_path"]
         mask = Image.open(mask_path)
 
-        image = TF.resize(image, (self.new_w/2, self.new_h/2))
-        mask = TF.resize(mask, (self.new_w/2, self.new_h/2))  # shape = (256, 256, 3)
+        image = TF.resize(image, (self.new_w//2, self.new_h//2))
+        mask = TF.resize(mask, (self.new_w//2, self.new_h//2))  # shape = (256, 256, 3)
 
         # image = cv2.resize(image, (self.new_w, self.new_h),
         #                    interpolation=cv2.INTER_NEAREST) # shape = (256, 256, 3)
