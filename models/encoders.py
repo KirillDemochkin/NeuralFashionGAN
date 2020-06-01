@@ -116,4 +116,4 @@ class Vgg19Full(torch.nn.Module):
         h_relu15 = self.slice15(h_relu14)
         h_relu16 = self.slice16(h_relu15)
         res = (h_relu1, h_relu2, h_relu3, h_relu4, h_relu5, h_relu6, h_relu7, h_relu8, h_relu9, h_relu10, h_relu11, h_relu12, h_relu13, h_relu14, h_relu15, h_relu16)
-        return torch.cat([r.view(r.size(0), -1) for r in res], dim=1)
+        return [r.view(r.size(0), -1) for r in res]
