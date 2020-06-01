@@ -24,8 +24,8 @@ class BasicEncoder(nn.Module):
         self.conv_4 = BasicDownsamplingConBlock(256, 512)
         self.conv_5 = BasicDownsamplingConBlock(512, 512)
         self.conv_6 = BasicDownsamplingConBlock(512, 512)
-        self.mu_fc = nn.Linear(8192//reduce_size, latent_dim)
-        self.sigma_fc = nn.Linear(8192//reduce_size, latent_dim)
+        self.mu_fc = nn.Linear(8192//(reduce_size**2), latent_dim)
+        self.sigma_fc = nn.Linear(8192//(reduce_size**2), latent_dim)
 
     def forward(self, x):
         x = self.conv_1(x)
