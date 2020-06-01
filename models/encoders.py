@@ -34,7 +34,7 @@ class BasicEncoder(nn.Module):
         x = self.conv_4(x)
         x = self.conv_5(x)
         x = self.conv_6(x)
-        x = torch.reshape(x, (-1, 8192//self.rs))
+        x = torch.reshape(x, (-1, 8192//(self.rs**2)))
         mu = self.mu_fc(x)
         sigma = self.sigma_fc(x)
         std = sigma.exp()
