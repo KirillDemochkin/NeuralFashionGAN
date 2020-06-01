@@ -189,7 +189,7 @@ def train():
             errP_fm = 0.0
             for ff, rf in zip(fake_vgg_f, real_vgg_f):
                 errP_fm += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
-            errP_fm.backward()
+            errP_fm.backward(retain_graph=True)
 
             fake_preds, fake_feats = netD(fake, mask) ##view -1
             errG_hinge = 0.0
