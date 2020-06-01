@@ -54,7 +54,7 @@ class DeepFashion2Dataset(Dataset):
         
         if self.return_masked_image:
             masked_image = image.clone()
-            masked_image[:, full_mask.sum(axis=0) > 0] = 1.
+            masked_image[:, np.sum(full_mask, axis=0) > 0] = 1.
             return image, full_mask, masked_image
         else:
             return image, full_mask
