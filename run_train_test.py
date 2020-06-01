@@ -13,7 +13,7 @@ import torch.optim as optim
 from tensorboardX import SummaryWriter
 #import matplotlib.pyplot as plt
 from datasets.gaugan_datasets import CocoDataset
-# from datasets.deepfashion2 import DeepFashion2Dataset
+from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANUnetGenerator
 from models.discriminator import MultiscaleDiscriminator
 from models.encoders import UnetEncoder
@@ -21,9 +21,19 @@ from utils.weights_init import weights_init
 from utils import losses
 from utils import visualization as vutils
 
+from albumentations import (
+    HorizontalFlip,
+    RandomCrop,
+    Compose,
+    RandomBrightnessContrast,
+    SmallestMaxSize,
+    Resize
+)
+from albumentations.pytorch import ToTensorV2
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_root', help='path to data', type=str, default= '/home/kdemochkin/NeuralFashionGAN/data')
-parser.add_argument('--root_path', help='path', type=str, default='/home/kdemochkin/NeuralFashionGAN')
+parser.add_argument('--data_root', help='path to data', type=str, default= 'C:/Users/Polinka/PycharmProjects/Deepfashion')
+parser.add_argument('--root_path', help='path', type=str, default='C:/Users/Polinka/PycharmProjects')
 parser.add_argument('--basenetG', help='pretrained generator model')
 parser.add_argument('--basenetD', help='pretrained discriminator model')
 parser.add_argument('--basenetE', help='pretrained encoder model')
@@ -51,9 +61,9 @@ parser.add_argument('--betas', default=0.5,
                     type=float)
 parser.add_argument('--fm_lambda', default=10, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
+parser.add_argument('--encoder_latent_dim', default=256, type=float)
 parser.add_argument('--unet_ch', default=4, type=float)
-parser.add_argument('--mask_channels', default=182, type=float)
-parser.add_argument('--mask_channels', default=182, type=float)
+parser.add_argument('--mask_channels', default=13, type=float)
 parser.add_argument('--load', default=False, help='resume net for retraining')
 args = parser.parse_args()
 
@@ -73,35 +83,25 @@ def setup_experiment(title, logdir="./tb"):
 
 
 ##LOAD DATE
-# train_images_dir = 'train/image/'
-# train_annos_dir = 'train/annos/'
-# validation_images_dir = 'validation/image/'
-# validation_annos_dir = 'validation/annos/'
-# test_images_dir = 'test/image/'
-# train_coco_annos = 'cocoInstances_train.json'
-# validation_coco_annos = 'cocoInstances_validation.json'
-coco_images_dir = str(args.data_root) + '/coco-stuff/val_images2017/'
-coco_masks_dir = str(args.data_root) + '/coco-stuff/val_labels2017/'
-coco_images_files = os.listdir(coco_images_dir)
-coco_images_files.sort()
-coco_train_images_files = coco_images_files[:4000]
-coco_val_images_files = coco_images_files[4000:4500]
-coco_test_images_files = coco_images_files[4500:5000]
-coco_labels_num = 182
-# train_dataset = DeepFashion2Dataset(train_images_dir,  train_coco_annos)
-# val_dataset = DeepFashion2Dataset(validation_images_dir, validation_coco_annos)
-coco_train_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_train_images_files, coco_labels_num)
-coco_val_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_val_images_files, coco_labels_num)
-coco_test_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_test_images_files, coco_labels_num)
+
+resize_width = resize_height = 64
+crop_width = crop_height = 64
+
+transform = Compose([Resize(resize_height, resize_width),
+                    HorizontalFlip(p=0.5),
+                    ToTensorV2()])
+
+
+train_dataset= DeepFashion2Dataset(os.path.join(args.data_root, 'train'),  transform=transform, return_masked_image= True )
+val_dataset= DeepFashion2Dataset(os.path.join(args.data_root, 'validation'),  transform=transform, return_masked_image= True )
 
 print('Loading Dataset...')
 sys.stdout.flush()
-train_loader = data_utils.DataLoader(coco_train_dataset, batch_size=args.batch_size, shuffle=True)
-val_loader = data_utils.DataLoader(coco_val_dataset, batch_size=args.batch_size, shuffle=True)
-test_loader = data_utils.DataLoader(coco_test_dataset, batch_size=args.batch_size, shuffle=True)
+train_loader = data_utils.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+val_loader = data_utils.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
 
 test_batch = next(iter(val_loader))
-fixed_test_images = test_batch[0].to(device)
+fixed_test_images = test_batch[2].to(device)
 fixed_test_masks = test_batch[1].to(device)
 _ = vutils.save_image(fixed_test_images.cpu().data[:16], '!test.png', normalize=True)
 
