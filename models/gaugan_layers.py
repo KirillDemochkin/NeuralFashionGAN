@@ -16,7 +16,7 @@ class SPADE(nn.Module):
         mask = nn.functional.interpolate(mask, scale_factor=self.scale_factor)
         conditional_features = self.shared_conv(mask)
         mu = self.mu_conv(conditional_features)
-        sigma = self.sigma_conv(conditional_features)
+        sigma = self.sigma_conv(conditional_features).exp()
         return (self.bn(x) * sigma) + mu
 
 
