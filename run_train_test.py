@@ -168,7 +168,6 @@ def train():
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
             latent_code, mu, sigma = netE(real_image)
             fake = netG(latent_code, mask)
-            print(fake.shape)
             fake_preds, fake_feats = netD(fake.detach(), mask)
 
             errD = 0.0
