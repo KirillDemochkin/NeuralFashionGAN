@@ -114,7 +114,7 @@ netG.apply(weights_init)
 netE = BasicEncoder(args.encoder_latent_dim, reduce_size=4).to(device)
 netE.apply(weights_init)
 
-vgg = Vgg19Full()
+vgg = Vgg19Full().to(device)
 vgg.eval()
 
 
