@@ -23,10 +23,10 @@ class GauGANGenerator(nn.Module):
         self.spd_blck_4 = SPADE_ResBlock(1 / 2 ** 1, latent_dim * 4, latent_dim * 2, mask_channels)
         self.upsample_4 = nn.UpsamplingNearest2d(scale_factor=2)
 
-        self.spd_blck_5 = SPADE_ResBlock(1 / 2 ** 2, latent_dim * 2, latent_dim, mask_channels)
+        self.spd_blck_5 = SPADE_ResBlock(1, latent_dim * 2, latent_dim, mask_channels)
         self.upsample_5 = nn.UpsamplingNearest2d(scale_factor=2)
 
-        self.spd_blck_6 = SPADE_ResBlock(1 / 2, latent_dim, latent_dim // 2, mask_channels)
+        self.spd_blck_6 = SPADE_ResBlock(2, latent_dim, latent_dim // 2, mask_channels)
         self.upsample_6 = nn.UpsamplingNearest2d(scale_factor=2)
 
         # self.spd_blck_7 = SPADE_ResBlock(1, latent_dim // 2, latent_dim // 4, mask_channels)
