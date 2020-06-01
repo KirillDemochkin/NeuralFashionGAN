@@ -162,7 +162,7 @@ def train():
             ## Train with all-real batch
             netD.zero_grad()
             real_image, mask = data[0].to(device), data[1].to(device)
-            print(real_image.shape, mask.shape)
+            #print(real_image.shape, mask.shape)
             real_preds, real_feats = netD(real_image, mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
