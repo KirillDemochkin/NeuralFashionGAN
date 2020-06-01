@@ -41,9 +41,36 @@ class BasicEncoder(nn.Module):
         return eps.mul(std).add(mu), mu, sigma
 
 
+class MappingNetwork(nn.Module):
+    def __init__(self, latent_dim):
+        super(MappingNetwork, self).__init__()
+        self.net = nn.Sequential(nn.Linear(latent_dim, latent_dim),
+                                 nn.ReLU(inplace=True),
+                                 nn.Linear(latent_dim, latent_dim),
+                                 nn.ReLU(inplace=True),
+                                 nn.Linear(latent_dim, latent_dim),
+                                 nn.ReLU(inplace=True),
+                                 nn.Linear(latent_dim, latent_dim),
+                                 nn.ReLU(inplace=True),
+                                 nn.Linear(latent_dim, latent_dim),
+                                 nn.ReLU(inplace=True),
+                                 nn.Linear(latent_dim, latent_dim),
+                                 nn.ReLU(inplace=True),
+                                 nn.Linear(latent_dim, latent_dim),
+                                 nn.ReLU(inplace=True),
+                                 nn.Linear(latent_dim, latent_dim),
+                                 nn.ReLU(inplace=True)
+                                 )
+
+    def forward(self, x):
+        x = torch.div(torch.sub(x, torch.mean(x, dim=1, keepdim=True)), torch.std(x, dim=1, keepdim=True))
+        return self.net(x)
+
+
 class UnetEncoder(nn.Module):
-    def __init__(self, latent_dim, skip_dim):
+    def __init__(self, latent_dim, skip_dim, resample=True):
         super(UnetEncoder, self).__init__()
+        self.resample = resample
         self.conv_1 = BasicDownsamplingConBlock(3, 64)
         self.skip_1 = nn.Sequential(nn.Conv2d(64, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
         self.conv_2 = BasicDownsamplingConBlock(64, 128)
@@ -55,7 +82,8 @@ class UnetEncoder(nn.Module):
         #self.conv_5 = BasicDownsamplingConBlock(512, 512)
         #self.conv_6 = BasicDownsamplingConBlock(512, 512)
         self.mu_fc = nn.Linear(8192, latent_dim)
-        self.sigma_fc = nn.Linear(8192, latent_dim)
+        if self.resample:
+            self.sigma_fc = nn.Linear(8192, latent_dim)
 
     def forward(self, x):
         skips = []
@@ -71,10 +99,14 @@ class UnetEncoder(nn.Module):
         #x = self.conv_6(x)
         x = torch.reshape(x, (-1, 8192))
         mu = self.mu_fc(x)
-        sigma = self.sigma_fc(x)
-        std = sigma.exp()
-        eps = std.data.new(std.size()).normal_()
-        return eps.mul(std).add(mu), mu, sigma, skips
+
+        if not self.resample:
+            return mu, skips
+        else:
+            sigma = self.sigma_fc(x)
+            std = sigma.exp()
+            eps = std.data.new(std.size()).normal_()
+            return eps.mul(std).add(mu), mu, sigma, skips
 
 
 class Vgg19Full(torch.nn.Module):
