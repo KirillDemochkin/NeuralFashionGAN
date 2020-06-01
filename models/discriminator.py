@@ -11,7 +11,7 @@ class MultiscaleDiscriminator(nn.Module):
                             count_include_pad=False)
         self.subnetD1 = GauGANDiscriminator(in_channels)
         self.subnetD2 = GauGANDiscriminator(in_channels)
-        #self.subnetD3 = GauGANDiscriminator(in_channels)
+        self.subnetD3 = GauGANDiscriminator(in_channels)
 
     def forward(self, x, mask):
         outs = []
