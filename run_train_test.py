@@ -64,7 +64,7 @@ parser.add_argument('--cycle_lambda', default=5, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
 parser.add_argument('--encoder_latent_dim', default=256, type=float)
 parser.add_argument('--unet_ch', default=4, type=float)
-parser.add_argument('--mask_channels', default=182, type=float)
+parser.add_argument('--mask_channels', default=13, type=float)
 parser.add_argument('--load', default=False, help='resume net for retraining')
 args = parser.parse_args()
 
