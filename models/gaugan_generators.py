@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from .gaugan_layers import SPADE_ResBlock, Style_SPADE_ResBlock
-from .encoders import MappingNetwork
+from .encoders import MappingNetwork, StyleEncoder
 from .stylegan_layers import StylizationNoiseNetwork
 
 class GauGANGenerator(nn.Module):
@@ -99,6 +99,7 @@ class GauGANUnetGenerator(nn.Module):
 class GauGANUnetStylizationGenerator(nn.Module):
     def __init__(self, mask_channels, latent_dim, initial_image_size, skip_dim):
         super(GauGANUnetStylizationGenerator, self).__init__()
+        self.encoder = StyleEncoder(latent_dim)
         self.mapping_net = MappingNetwork(latent_dim)
         self.noise_net = StylizationNoiseNetwork([latent_dim * 4 + skip_dim,
                                                   latent_dim * 4 + skip_dim,
@@ -134,7 +135,8 @@ class GauGANUnetStylizationGenerator(nn.Module):
         self.tanh = nn.Tanh()
 
     def forward(self, x, mask, skips):
-        style_code = self.mapping_net(x)
+        embedding = self.encoder(x)
+        style_code = self.mapping_net(embedding)
         style_noise = self.noise_net([torch.randn(x.shape[0], 1, self.initial_image_size, self.initial_image_size),
                                       torch.randn(x.shape[0], 1, self.initial_image_size*2, self.initial_image_size*2),
                                       torch.randn(x.shape[0], 1, self.initial_image_size*4, self.initial_image_size*4),
