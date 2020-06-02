@@ -198,7 +198,7 @@ def train():
             if writer is not None:
                 writer.add_scalar(f"loss_G", errG, global_i)
             # Output training stats
-            if i % 100 == 99:
+            if i % 500 == 499:
                 print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t'
                       % (epoch, num_epochs, i, len(train_loader), errD.item(), errG))
                 sys.stdout.flush()
