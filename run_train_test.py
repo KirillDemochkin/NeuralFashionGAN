@@ -59,8 +59,8 @@ parser.add_argument('--weight_decay', default=5e-4,
 parser.add_argument('--momentum', default=0.999, type=float, help='momentum')
 parser.add_argument('--betas', default=0.5,
                     type=float)
-parser.add_argument('--fm_lambda', default=10, type=float)
-parser.add_argument('--cycle_lambda', default=10, type=float)
+parser.add_argument('--fm_lambda', default=5, type=float)
+parser.add_argument('--cycle_lambda', default=5, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
 parser.add_argument('--encoder_latent_dim', default=256, type=float)
 parser.add_argument('--unet_ch', default=4, type=float)
@@ -216,6 +216,15 @@ def train():
                 print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t'
                       % (epoch, num_epochs, i, len(train_loader), errD.item(), errG))
                 sys.stdout.flush()
+                with torch.no_grad():
+                    netG.eval()
+                    netE.eval()
+                    test_code, _, _, test_skips = netE(fixed_test_images)
+                    test_generated = netG(test_code, fixed_test_masks, test_skips).detach().cpu()
+                    netG.train()
+                    netE.train()
+                tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True, save=False)
+                writer.add_image('generated', tim, global_i, dataformats='HWC')
 
             G_losses.append(errG)
             D_losses.append(errD)
@@ -236,8 +245,8 @@ def train():
 
             print("Epoch %d - Elapsed time: {:0>2}:{:0>2}:{:05.2f}".format(epoch, int(hours), int(minutes), seconds))
             sys.stdout.flush()
-            tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True)
-            writer.add_image('generated', tim, epoch, dataformats='HWC')
+            _ = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True)
+            #writer.add_image('generated', tim, epoch, dataformats='HWC')
             torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG' + best_model_path ))
             torch.save(netD.state_dict(), os.path.join(args.root_path, 'NetD' + best_model_path))
             torch.save(netE.state_dict(), os.path.join(args.root_path, 'NetE' + best_model_path))
