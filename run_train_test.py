@@ -175,7 +175,7 @@ def train():
             fake_preds, fake_feats = netD(torch.clamp(fake.detach()+jitter_fake, -1.0, 1.0), mask)
             errD = 0.0
             for fp, rp in zip(fake_preds, real_preds):
-                errD += losses.ls_loss_discriminator(fp, rp)
+                errD += losses.hinge_loss_discriminator(fp, rp)
             errD.backward()
             optimizerD.step()
 
@@ -200,7 +200,7 @@ def train():
             fake_preds, fake_feats = netD(fake, mask)
             errG_hinge = 0.0
             for fp in fake_preds:
-                errG_hinge += losses.ls_loss_generator(fp)
+                errG_hinge += losses.hinge_loss_generator(fp)
             errG_hinge.backward(retain_graph=True)
             errG_fm = 0.0
             for ff, rf in zip(fake_feats, real_feats):
