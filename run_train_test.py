@@ -13,7 +13,7 @@ import torch.optim as optim
 from tensorboardX import SummaryWriter
 #import matplotlib.pyplot as plt
 from datasets.gaugan_datasets import CocoDataset
-from datasets.deepfashion2 import DeepFashion2Dataset
+from datasets.deepfashion2 import DeepFashion2Dataset, DeepFashion2DatasetOC
 from models.gaugan_generators import GauGANUnetGenerator
 from models.discriminator import MultiscaleDiscriminator
 from models.encoders import UnetEncoder, Vgg19Full
