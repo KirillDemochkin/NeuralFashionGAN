@@ -6,9 +6,12 @@ def KL_divergence(mu, logsigma):
 
 
 def hinge_loss_discriminator(fake_preds, real_preds):
-    rpl = torch.relu(1.0 - real_preds).mean()
-    fpl = torch.relu(1.0 + fake_preds).mean()
-    return rpl + fpl
+    rpl = -torch.ones_like(real_preds) + real_preds
+    rpl = torch.where(rpl > 0, torch.zeros_like(rpl), rpl)
+    fpl = -torch.ones_like(fake_preds) - fake_preds
+    fpl = torch.where(fpl > 0, torch.zeros_like(fpl), fpl)
+    return -torch.mean(
+        torch.add(rpl, fpl))
 
 
 def hinge_loss_generator(fake_preds):
