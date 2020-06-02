@@ -13,13 +13,23 @@ import torch.optim as optim
 from tensorboardX import SummaryWriter
 #import matplotlib.pyplot as plt
 from datasets.gaugan_datasets import CocoDataset
-# from datasets.deepfashion2 import DeepFashion2Dataset
-from models.gaugan_generators import GauGANUnetGenerator
+from datasets.deepfashion2 import DeepFashion2Dataset
+from models.gaugan_generators import GauGANUnetGenerator, GauGANUnetStylizationGenerator
 from models.discriminator import MultiscaleDiscriminator
-from models.encoders import UnetEncoder
+from models.encoders import UnetEncoder, SkipNet
 from utils.weights_init import weights_init
 from utils import losses
 from utils import visualization as vutils
+
+from albumentations import (
+    HorizontalFlip,
+    RandomCrop,
+    Compose,
+    RandomBrightnessContrast,
+    SmallestMaxSize,
+    Resize
+)
+from albumentations.pytorch import ToTensorV2
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_root', help='path to data', type=str, default= '/home/kdemochkin/NeuralFashionGAN/data')
@@ -53,7 +63,6 @@ parser.add_argument('--fm_lambda', default=10, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
 parser.add_argument('--unet_ch', default=4, type=float)
 parser.add_argument('--mask_channels', default=182, type=float)
-parser.add_argument('--mask_channels', default=182, type=float)
 parser.add_argument('--load', default=False, help='resume net for retraining')
 args = parser.parse_args()
 
@@ -73,48 +82,43 @@ def setup_experiment(title, logdir="./tb"):
 
 
 ##LOAD DATE
-# train_images_dir = 'train/image/'
-# train_annos_dir = 'train/annos/'
-# validation_images_dir = 'validation/image/'
-# validation_annos_dir = 'validation/annos/'
-# test_images_dir = 'test/image/'
-# train_coco_annos = 'cocoInstances_train.json'
-# validation_coco_annos = 'cocoInstances_validation.json'
-coco_images_dir = str(args.data_root) + '/coco-stuff/val_images2017/'
-coco_masks_dir = str(args.data_root) + '/coco-stuff/val_labels2017/'
-coco_images_files = os.listdir(coco_images_dir)
-coco_images_files.sort()
-coco_train_images_files = coco_images_files[:4000]
-coco_val_images_files = coco_images_files[4000:4500]
-coco_test_images_files = coco_images_files[4500:5000]
-coco_labels_num = 182
-# train_dataset = DeepFashion2Dataset(train_images_dir,  train_coco_annos)
-# val_dataset = DeepFashion2Dataset(validation_images_dir, validation_coco_annos)
-coco_train_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_train_images_files, coco_labels_num)
-coco_val_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_val_images_files, coco_labels_num)
-coco_test_dataset = CocoDataset(coco_images_dir, coco_masks_dir, coco_test_images_files, coco_labels_num)
+
+
+resize_width = resize_height = 128
+crop_width = crop_height = 128
+
+transform = Compose([Resize(resize_height, resize_width),
+                    HorizontalFlip(p=0.5),
+                    ToTensorV2()])
+
+
+train_dataset = DeepFashion2Dataset(os.path.join(args.data_root, 'validation'),  transform=transform, return_masked_image=True)
+#val_dataset = DeepFashion2Dataset(os.path.join(args.data_root, 'validation'),  transform=transform, return_masked_image= True )
 
 print('Loading Dataset...')
 sys.stdout.flush()
-train_loader = data_utils.DataLoader(coco_train_dataset, batch_size=args.batch_size, shuffle=True)
-val_loader = data_utils.DataLoader(coco_val_dataset, batch_size=args.batch_size, shuffle=True)
-test_loader = data_utils.DataLoader(coco_test_dataset, batch_size=args.batch_size, shuffle=True)
+train_loader = data_utils.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+#val_loader = data_utils.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
 
-test_batch = next(iter(val_loader))
-fixed_test_images = test_batch[0].to(device)
+test_batch = next(iter(train_loader))
+fixed_test_images = test_batch[2].to(device)
 fixed_test_masks = test_batch[1].to(device)
+
 _ = vutils.save_image(fixed_test_images.cpu().data[:16], '!test.png', normalize=True)
 
 ##MODE
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
 netD.apply(weights_init)
 
-netG = GauGANUnetGenerator(args.mask_channels, args.encoder_latent_dim, 4, args.unet_ch).to(device)
+netG = GauGANUnetStylizationGenerator(args.mask_channels, args.encoder_latent_dim, 4, args.unet_ch).to(device)
 netG.apply(weights_init)
 
 netE = UnetEncoder(args.encoder_latent_dim, args.unet_ch).to(device)
 netE.apply(weights_init)
-
+netSkip = SkipNet(args.unet_ch).to(device)
+netSkip.apply(weights_init)
+adain = AdaIN()
+AdaIN.apply(weights_init)
 writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir=os.path.join(args.root_path, "tb"))
 print(f"Experiment name: {experiment_name}")
 sys.stdout.flush()
@@ -158,11 +162,12 @@ def train():
             ###########################
             ## Train with all-real batch
             netD.zero_grad()
-            real_image, mask = data[0].to(device), data[1].to(device)
+            real_image, mask, masked_image, loss_mask = data[0].to(device), data[1].to(device), data[2].to(device), data[3].to(device)
 
             real_preds, real_feats = netD(real_image, mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
+            pred,  skips = netSkip(masked_image)
             latent_code, mu, sigma, skips = netE(real_image)
             fake = netG(latent_code, mask, skips)
             fake_preds, fake_feats = netD(fake.detach(), mask)
@@ -178,62 +183,81 @@ def train():
             ############################
             # G network
             ###########################
-            netG.zero_grad()
-            netE.zero_grad()
-            dkl = args.kl_lambda * losses.KL_divergence(mu, sigma)
-            dkl.backward(retain_graph=True)
-            fake_preds, fake_feats = netD(fake, mask) ##view -1
-            errG_hinge = 0.0
-            for fp in fake_preds:
-                errG_hinge += losses.hinge_loss_generator(fp)
-            errG_hinge.backward(retain_graph=True)
-            errG_fm = 0.0
-            for ff, rf in zip(fake_feats, real_feats):
-                errG_fm += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
-            errG_fm.backward()
-            errG = errG_hinge.item() + errG_fm.item()
+                # G network
+                ###########################
+                netG.zero_grad()
+                netE.zero_grad()
+                dkl = args.kl_lambda * losses.KL_divergence(mu, sigma)
+                dkl.backward(retain_graph=True)
+                l1 = losses.masked_l1(fake, masked_image, loss_mask) * args.cycle_lambda
+                l1.backward(retain_graph=True)
+                fake_vgg_f = vgg(fake)
+                real_vgg_f = vgg(real_image)
+                errG_p = 0.0
+                for ff, rf in zip(fake_vgg_f, real_vgg_f):
+                    errG_p += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
+                errG_p.backward(retain_graph=True)
+                fake_preds, fake_feats = netD(fake, mask)
+                errG_hinge = 0.0
+                for fp in fake_preds:
+                    errG_hinge += losses.hinge_loss_generator(fp)
+                errG_hinge.backward(retain_graph=True)
+                errG_fm = 0.0
+                for ff, rf in zip(fake_feats, real_feats):
+                    errG_fm += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
+                errG_fm.backward()
+                errG = errG_hinge.item() + errG_fm.item() + errG_p.item() + l1.item()
 
-            optimizerG.step()
-            optimizerE.step()
-            if writer is not None:
-                writer.add_scalar(f"loss_G", errG, global_i)
-            # Output training stats
-            if i % 500 == 499:
-                print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t'
-                      % (epoch, num_epochs, i, len(train_loader), errD.item(), errG))
+                optimizerG.step()
+                optimizerE.step()
+                if writer is not None:
+                    writer.add_scalar(f"loss_G", errG, global_i)
+                # Output training stats
+                if i % 500 == 499:
+                    print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t'
+                          % (epoch, num_epochs, i, len(train_loader), errD.item(), errG))
+                    sys.stdout.flush()
+                    with torch.no_grad():
+                        netG.eval()
+                        netE.eval()
+                        test_code, _, _, test_skips = netE(fixed_test_images)
+                        test_generated = netG(test_code, fixed_test_masks, test_skips).detach().cpu()
+                        netG.train()
+                        netE.train()
+                    tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch),
+                                            normalize=True, save=False)
+                    writer.add_image('generated', tim, global_i, dataformats='HWC')
+                G_losses.append(errG)
+                D_losses.append(errD)
+
+                # Check how the generator is doing by saving G's output on fixed_noise
+            end = time.time()
+            hours, rem = divmod(end - start, 3600)
+            minutes, seconds = divmod(rem, 60)
+            if epoch % args.save_frequency == 0:
+                with torch.no_grad():
+                    netG.eval()
+                    netE.eval()
+                    test_code, _, _, test_skips = netE(fixed_test_images)
+                    test_generated = netG(test_code, fixed_test_masks, test_skips).detach().cpu()
+                    netG.train()
+                    netE.train()
+                # img_list.append(fake.data.numpy())
+
+                print("Epoch %d - Elapsed time: {:0>2}:{:0>2}:{:05.2f}".format(epoch, int(hours), int(minutes), seconds))
                 sys.stdout.flush()
-
-            G_losses.append(errG)
-            D_losses.append(errD)
-
-            # Check how the generator is doing by saving G's output on fixed_noise
-        end = time.time()
-        hours, rem = divmod(end - start, 3600)
-        minutes, seconds = divmod(rem, 60)
-        if epoch % args.save_frequency == 0:
-            with torch.no_grad():
-                netG.eval()
-                netE.eval()
-                test_code, _, _, test_skips = netE(fixed_test_images)
-                test_generated = netG(test_code, fixed_test_masks, test_skips).detach().cpu()
-                netG.train()
-                netE.train()
-            #img_list.append(fake.data.numpy())
-
-            print("Epoch %d - Elapsed time: {:0>2}:{:0>2}:{:05.2f}".format(epoch, int(hours), int(minutes), seconds))
-            sys.stdout.flush()
-            tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True)
-            writer.add_image('generated', tim, epoch, dataformats='HWC')
-            torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG' + best_model_path ))
-            torch.save(netD.state_dict(), os.path.join(args.root_path, 'NetD' + best_model_path))
-            torch.save(netE.state_dict(), os.path.join(args.root_path, 'NetE' + best_model_path))
-            #plt.imsave(os.path.join(
-                #'./{}/'.format(test_save_dir) + 'img{}.png'.format(datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))),
-                       #((img_list[-1][0] + 1) / 2.0).transpose([1, 2, 0]), cmap='gray', interpolation="none")
-            if writer is not None:
-                writer.add_scalar(f"loss_G_epoch", np.sum(G_losses) / len(train_loader), epoch)
-                writer.add_scalar(f"loss_D_epoch", np.sum(D_losses) / len(train_loader), epoch)
-            iters += 1
+                _ = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True)
+                # writer.add_image('generated', tim, epoch, dataformats='HWC')
+                torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG' + best_model_path))
+                torch.save(netD.state_dict(), os.path.join(args.root_path, 'NetD' + best_model_path))
+                torch.save(netE.state_dict(), os.path.join(args.root_path, 'NetE' + best_model_path))
+                # plt.imsave(os.path.join(
+                # './{}/'.format(test_save_dir) + 'img{}.png'.format(datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))),
+                # ((img_list[-1][0] + 1) / 2.0).transpose([1, 2, 0]), cmap='gray', interpolation="none")
+                if writer is not None:
+                    writer.add_scalar(f"loss_G_epoch", np.sum(G_losses) / len(train_loader), epoch)
+                    writer.add_scalar(f"loss_D_epoch", np.sum(D_losses) / len(train_loader), epoch)
+                iters += 1
 
 
 def test_net():
