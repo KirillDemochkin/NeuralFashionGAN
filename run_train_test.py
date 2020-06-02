@@ -16,7 +16,7 @@ from datasets.gaugan_datasets import CocoDataset
 from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANUnetGenerator, GauGANUnetStylizationGenerator
 from models.discriminator import MultiscaleDiscriminator
-from models.encoders import UnetEncoder, SkipNet
+from models.encoders import UnetEncoder, StyleEncoder, Vgg19Full
 from utils.weights_init import weights_init
 from utils import losses
 from utils import visualization as vutils
@@ -115,8 +115,11 @@ netD.apply(weights_init)
 netG = GauGANUnetStylizationGenerator(args.mask_channels, args.encoder_latent_dim, 2, args.unet_ch).to(device)
 netG.apply(weights_init)
 
-netS = SkipNet(args.unet_ch).to(device)
+netS = StyleEncoder(args.encoder_latent_dim,args.unet_ch).to(device)
 netS.apply(weights_init)
+
+vgg = Vgg19Full().to(device)
+vgg.eval()
 
 writer, experiment_name, best_model_path = setup_experiment("DeepFashionBaseline", logdir=os.path.join(args.root_path, "tb"))
 print(f"Experiment name: {experiment_name}")
@@ -137,7 +140,7 @@ optimizerD = optim.Adam(netD.parameters(), lr=args.lr, betas=(args.betas, args.m
                         weight_decay=args.weight_decay)
 optimizerG = optim.Adam(netG.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
                         weight_decay=args.weight_decay)
-optimizerE = optim.Adam(netE.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
+optimizerE = optim.Adam(netS.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
                         weight_decay=args.weight_decay)
 
 
@@ -166,8 +169,9 @@ def train():
             real_preds, real_feats = netD(real_image, mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
-            mu,sigma, skips = netS(masked_image)
-            fake = netG(real_image, mask, skips)
+            _, skips = netS(masked_image)
+            embed, _ = netS(real_image)
+            fake = netG(embed, mask, skips)
             fake_preds, fake_feats = netD(fake.detach(), mask)
             errD = 0.0
             for fp, rp in zip(fake_preds, real_preds):
@@ -181,11 +185,8 @@ def train():
             ############################
             # G network
             ###########################
-
             netG.zero_grad()
             netS.zero_grad()
-            dkl = args.kl_lambda * losses.KL_divergence(mu, sigma)
-            dkl.backward(retain_graph=True)
             l1 = losses.masked_l1(fake, masked_image, loss_mask) * args.cycle_lambda
             l1.backward(retain_graph=True)
             fake_vgg_f = vgg(fake)
@@ -217,8 +218,9 @@ def train():
                with torch.no_grad():
                   netG.eval()
                   netS.eval()
-                  _,_, test_skips = netS(fixed_test_images)
-                  test_generated = netG(fixed_test_real_images, fixed_test_masks, test_skips).detach().cpu()
+                  _, test_skips = netS(fixed_test_images)
+                  test_embed, _ = netS(fixed_test_real_images)
+                  test_generated = netG(test_embed, fixed_test_masks, test_skips).detach().cpu()
                   netG.train()
                   netS.train()
                tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch),
@@ -235,8 +237,9 @@ def train():
             with torch.no_grad():
                 netG.eval()
                 netS.eval()
-                _,_, test_skips = netS(fixed_test_images)
-                test_generated = netG(fixed_test_real_images, fixed_test_masks, test_skips).detach().cpu()
+                _, test_skips = netS(fixed_test_images)
+                test_embed, _ = netS(fixed_test_real_images)
+                test_generated = netG(test_embed, fixed_test_masks, test_skips).detach().cpu()
                 netG.train()
                 netS.train()
             # img_list.append(fake.data.numpy())
