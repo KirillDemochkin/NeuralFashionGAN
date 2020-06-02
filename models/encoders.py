@@ -187,3 +187,28 @@ class Vgg19Full(torch.nn.Module):
         h_relu16 = self.slice16(h_relu15)
         res = (h_relu1, h_relu2, h_relu3, h_relu4, h_relu5, h_relu6, h_relu7, h_relu8, h_relu9, h_relu10, h_relu11, h_relu12, h_relu13, h_relu14, h_relu15, h_relu16)
         return torch.cat([r.view(r.size(0), -1) for r in res], dim=1)
+
+
+class SkipNet(nn.Module):
+    def __init__(self, skip_dim):
+        super(UnetEncoder, self).__init__()
+        self.conv_1 = BasicDownsamplingConBlock(3, 64)
+        self.fc_1= nn.Conv2d(64, skip_dim, kernel_size=1)
+        self.conv_2 = BasicDownsamplingConBlock(64, 128)
+        self.fc_2 = nn.Conv2d(128, skip_dim, kernel_size=1)
+        self.conv_3 = BasicDownsamplingConBlock(128, 256)
+        self.fc_3 = nn.Conv2d(256, skip_dim, kernel_size=1)
+        self.conv_4 = BasicDownsamplingConBlock(256, 512)
+        self.fc_4 = nn.Conv2d(512, skip_dim, kernel_size=1)
+
+    def forward(self, x):
+        skips = []
+        x = self.conv_1(x)
+        skips.append(self.fc_1(x))
+        x = self.conv_2(x)
+        skips.append(self.fc_2(x))
+        x = self.conv_3(x)
+        skips.append(self.fc_3(x))
+        x = self.conv_4(x)
+        skips.append(self.fc_4(x))
+        return skips
