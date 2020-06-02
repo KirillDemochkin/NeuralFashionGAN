@@ -88,7 +88,7 @@ def make_grid(tensor, nrow=8, padding=2,
 
 
 def save_image(tensor, filename, nrow=8, padding=2,
-               normalize=False, range=None, scale_each=False, pad_value=0):
+               normalize=False, range=None, scale_each=False, pad_value=0, save=True):
     """Save a given Tensor into an image file.
 
     Args:
@@ -101,6 +101,7 @@ def save_image(tensor, filename, nrow=8, padding=2,
                      normalize=normalize, range=range, scale_each=scale_each)
     # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
     ndarr = grid.mul_(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
-    im = Image.fromarray(ndarr)
-    im.save(filename)
+    if save:
+        im = Image.fromarray(ndarr)
+        im.save(filename)
     return ndarr
