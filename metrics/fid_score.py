@@ -116,7 +116,7 @@ class DatasetIterator:
             raise StopIteration
 
         images = np.array([imread(join(self.path_to_images, f))
-            for f in self.files[self.counter:self.counter+self.batch_size]])
+            for f in self.files[self.counter:self.counter+self.batch_size]]).astype(np.float32)
         images = images.transpose((0, 3, 1, 2))
         batch = torch.from_numpy(images).to(self.device)
 
