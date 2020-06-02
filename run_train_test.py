@@ -59,8 +59,8 @@ parser.add_argument('--weight_decay', default=5e-4,
 parser.add_argument('--momentum', default=0.999, type=float, help='momentum')
 parser.add_argument('--betas', default=0.5,
                     type=float)
-parser.add_argument('--fm_lambda', default=5, type=float)
-parser.add_argument('--cycle_lambda', default=5, type=float)
+parser.add_argument('--fm_lambda', default=10, type=float)
+parser.add_argument('--cycle_lambda', default=1, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
 parser.add_argument('--encoder_latent_dim', default=256, type=float)
 parser.add_argument('--unet_ch', default=4, type=float)
@@ -105,7 +105,7 @@ test_batch = next(iter(train_loader))
 fixed_test_images = test_batch[2].to(device)
 fixed_test_masks = test_batch[1].to(device)
 
-_ = vutils.save_image(fixed_test_images.cpu().data[:16], '!test.png', normalize=True)
+_ = vutils.save_image(test_batch[0].data[:16], '!test.png', normalize=True)
 
 ##MODE
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
