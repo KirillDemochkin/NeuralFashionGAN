@@ -59,7 +59,8 @@ parser.add_argument('--weight_decay', default=5e-4,
 parser.add_argument('--momentum', default=0.999, type=float, help='momentum')
 parser.add_argument('--betas', default=0.5,
                     type=float)
-parser.add_argument('--fm_lambda', default=10, type=float)
+parser.add_argument('--fm_lambda', default=5, type=float)
+parser.add_argument('--cycle_lambda', default=5, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
 parser.add_argument('--unet_ch', default=4, type=float)
 parser.add_argument('--mask_channels', default=182, type=float)
@@ -81,7 +82,7 @@ def setup_experiment(title, logdir="./tb"):
     return writer, experiment_name, best_model_path
 
 
-##LOAD DATE
+##LOAD DATA
 
 
 resize_width = resize_height = 128
@@ -110,16 +111,14 @@ _ = vutils.save_image(fixed_test_images.cpu().data[:16], '!test.png', normalize=
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
 netD.apply(weights_init)
 
-netG = GauGANUnetStylizationGenerator(args.mask_channels, args.encoder_latent_dim, 4, args.unet_ch).to(device)
+netG = GauGANUnetStylizationGenerator(args.mask_channels, args.encoder_latent_dim, 2, args.unet_ch).to(device)
 netG.apply(weights_init)
 
-netE = UnetEncoder(args.encoder_latent_dim, args.unet_ch).to(device)
-netE.apply(weights_init)
 netSkip = SkipNet(args.unet_ch).to(device)
 netSkip.apply(weights_init)
-adain = AdaIN()
-AdaIN.apply(weights_init)
-writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir=os.path.join(args.root_path, "tb"))
+netA = AdaIN()
+netA.apply(weights_init)
+writer, experiment_name, best_model_path = setup_experiment("DeepFashionBaseline", logdir=os.path.join(args.root_path, "tb"))
 print(f"Experiment name: {experiment_name}")
 sys.stdout.flush()
 
