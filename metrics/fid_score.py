@@ -125,7 +125,7 @@ class DatasetIterator:
         self.counter += self.batch_size
         return batch
 
-    def len(self):
+    def __len__(self):
         return math.ceil(self.n_images / self.batch_size)
 
     def total_len(self):
