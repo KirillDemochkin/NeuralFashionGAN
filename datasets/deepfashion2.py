@@ -68,7 +68,7 @@ class DeepFashion2Dataset(Dataset):
         return self.length
 
 class DeepFashion2DatasetOC(Dataset):
-    def __init__(self, root, num_classes=13, transform=None, expansion=30):
+    def __init__(self, root, num_classes=13, transform=None, expansion=40):
         super().__init__()
         
         self.image_folder = join(root, 'image')
