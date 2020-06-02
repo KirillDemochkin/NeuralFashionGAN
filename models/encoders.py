@@ -198,9 +198,9 @@ class StyleEncoder(nn.Module):
         self.fc_3 = nn.Conv2d(256, skip_dim, kernel_size=1)
         self.conv_4 = BasicDownsamplingConBlock(256, 512)
         self.fc_4= nn.Conv2d(512, skip_dim, kernel_size=1)
-        self.conv_2 = BasicDownsamplingConBlock(512, 512)
+        self.conv_5 = BasicDownsamplingConBlock(512, 512)
         self.fc_5 = nn.Conv2d(512, skip_dim, kernel_size=1)
-        self.conv_3 = BasicDownsamplingConBlock(512, 512)
+        self.conv_6 = BasicDownsamplingConBlock(512, 512)
         self.fc_6 = nn.Conv2d(512, skip_dim, kernel_size=1)
         self.fc = nn.Linear(8192, latent_dim)
 
