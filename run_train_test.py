@@ -60,7 +60,7 @@ parser.add_argument('--momentum', default=0.999, type=float, help='momentum')
 parser.add_argument('--betas', default=0.5,
                     type=float)
 parser.add_argument('--fm_lambda', default=10, type=float)
-parser.add_argument('--cycle_lambda', default=1, type=float)
+parser.add_argument('--cycle_lambda', default=2, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
 parser.add_argument('--encoder_latent_dim', default=256, type=float)
 parser.add_argument('--unet_ch', default=4, type=float)
@@ -169,7 +169,7 @@ def train():
             real_preds, real_feats = netD(real_image, mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
-            latent_code, mu, sigma, skips = netE(masked_image)
+            latent_code, mu, sigma, skips = netE(real_image)
             fake = netG(latent_code, mask, skips)
             fake_preds, fake_feats = netD(fake.detach(), mask)
             errD = 0.0
