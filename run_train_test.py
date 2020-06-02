@@ -118,7 +118,7 @@ vgg = Vgg19Full().to(device)
 vgg.eval()
 
 
-writer, experiment_name, best_model_path = setup_experiment(netG.__class__.__name__, logdir=os.path.join(args.root_path, "tb"))
+writer, experiment_name, best_model_path = setup_experiment("gaugan_small", logdir=os.path.join(args.root_path, "tb"))
 print(f"Experiment name: {experiment_name}")
 sys.stdout.flush()
 
