@@ -6,7 +6,7 @@ class SPADE(nn.Module):
     def __init__(self, scale_factor, n_filters, mask_channels):
         super(SPADE, self).__init__()
         self.scale_factor = scale_factor
-        self.bn = nn.BatchNorm2d(n_filters)
+        self.bn = nn.InstanceNorm2d(n_filters)
         self.shared_conv = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(mask_channels, 128, kernel_size=3, padding=1)),
                                          nn.ReLU(inplace=True))
         self.mu_conv = nn.utils.spectral_norm(nn.Conv2d(128, n_filters, kernel_size=3, padding=1))
