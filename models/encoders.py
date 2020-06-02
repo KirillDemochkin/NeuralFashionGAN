@@ -191,7 +191,7 @@ class Vgg19Full(torch.nn.Module):
 
 class StyleEncoder(nn.Module):
     def __init__(self, latent_dim, skip_dim):
-        super(UnetEncoder, self).__init__()
+        super(StyleEncoder, self).__init__()
         self.conv_1 = BasicDownsamplingConBlock(3, 64)
         self.conv_2 = BasicDownsamplingConBlock(64, 128)
         self.conv_3 = BasicDownsamplingConBlock(128, 256)

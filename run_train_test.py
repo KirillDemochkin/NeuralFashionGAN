@@ -32,8 +32,8 @@ from albumentations import (
 from albumentations.pytorch import ToTensorV2
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_root', help='path to data', type=str, default= '/home/kdemochkin/NeuralFashionGAN/data')
-parser.add_argument('--root_path', help='path', type=str, default='/home/kdemochkin/NeuralFashionGAN')
+parser.add_argument('--data_root', help='path to data', type=str, default= 'C:/Users/Polinka/PycharmProjects/Deepfashion')
+parser.add_argument('--root_path', help='path', type=str, default='C:/Users/Polinka/PycharmProjects')
 parser.add_argument('--basenetG', help='pretrained generator model')
 parser.add_argument('--basenetD', help='pretrained discriminator model')
 parser.add_argument('--basenetS', help='pretrained encoder model')
@@ -62,6 +62,7 @@ parser.add_argument('--betas', default=0.5,
 parser.add_argument('--fm_lambda', default=5, type=float)
 parser.add_argument('--cycle_lambda', default=5, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
+parser.add_argument('--encoder_latent_dim', default=256, type=float)
 parser.add_argument('--unet_ch', default=4, type=float)
 parser.add_argument('--mask_channels', default=182, type=float)
 parser.add_argument('--load', default=False, help='resume net for retraining')
