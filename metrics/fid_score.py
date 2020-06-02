@@ -96,7 +96,9 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
 
 
 def load_precomputed_statistics(path_to_precomputed):
-    return pickle.load(path_to_precomputed)
+    with open(path_to_precomputed, 'w') as f: 
+        sm = pickle.load(f)
+    return sm
 
 def imread(path):
     return cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB) / 255.
@@ -161,4 +163,5 @@ def precompute_dataset_statistics(path_to_images, path_to_save, device='cpu', ba
 
     diter = DatasetIterator(path_to_images, batch_size, device=device)
     ms = calculate_activation_statistics(get_activations(diter, model, dims))
-    pickle.dump(ms, path_to_save)
+    with open(path_to_save) as f:
+        pickle.dump(ms, f)
