@@ -46,9 +46,9 @@ class UnetEncoder(nn.Module):
         super(UnetEncoder, self).__init__()
         self.rs = rs
         self.conv_1 = BasicDownsamplingConBlock(3, 64)
-        #self.skip_1 = nn.Sequential(nn.Conv2d(64, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        self.skip_1 = nn.Sequential(nn.Conv2d(64, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
         self.conv_2 = BasicDownsamplingConBlock(64, 128)
-        #self.skip_2 = nn.Sequential(nn.Conv2d(128, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        self.skip_2 = nn.Sequential(nn.Conv2d(128, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
         self.conv_3 = BasicDownsamplingConBlock(128, 256)
         self.skip_3 = nn.Sequential(nn.Conv2d(256, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
         self.conv_4 = BasicDownsamplingConBlock(256, 512)
@@ -63,9 +63,9 @@ class UnetEncoder(nn.Module):
     def forward(self, x):
         skips = []
         x = self.conv_1(x)
-        #skips.append(self.skip_1(x))
+        skips.append(self.skip_1(x))
         x = self.conv_2(x)
-        #skips.append(self.skip_2(x))
+        skips.append(self.skip_2(x))
         x = self.conv_3(x)
         skips.append(self.skip_3(x))
         x = self.conv_4(x)
