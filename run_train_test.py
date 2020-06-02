@@ -165,16 +165,17 @@ def train():
             ## Train with all-real batch
             netD.zero_grad()
             real_image, mask, masked_image, loss_mask = data[0].to(device), data[1].to(device), data[2].to(device), data[3].to(device)
-
-            real_preds, real_feats = netD(real_image, mask)
+            jitter_real = torch.empty_like(real_image).uniform_(-0.05 * (0.99 ** epoch), 0.05 * (0.99 ** epoch))
+            jitter_fake = torch.empty_like(real_image).uniform_(-0.05 * (0.99 ** epoch), 0.05 * (0.99 ** epoch))
+            real_preds, real_feats = netD(torch.clamp(real_image + jitter_real, -1.0, 1.0), mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
             latent_code, mu, sigma, skips = netE(real_image)
             fake = netG(latent_code, mask, skips)
-            fake_preds, fake_feats = netD(fake.detach(), mask)
+            fake_preds, fake_feats = netD(torch.clamp(fake.detach()+jitter_fake, -1.0, 1.0), mask)
             errD = 0.0
             for fp, rp in zip(fake_preds, real_preds):
-                errD += losses.hinge_loss_discriminator(fp, rp)
+                errD += losses.ls_loss_discriminator(fp, rp)
             errD.backward()
             optimizerD.step()
 
@@ -199,7 +200,7 @@ def train():
             fake_preds, fake_feats = netD(fake, mask)
             errG_hinge = 0.0
             for fp in fake_preds:
-                errG_hinge += losses.hinge_loss_generator(fp)
+                errG_hinge += losses.ls_loss_generator(fp)
             errG_hinge.backward(retain_graph=True)
             errG_fm = 0.0
             for ff, rf in zip(fake_feats, real_feats):
