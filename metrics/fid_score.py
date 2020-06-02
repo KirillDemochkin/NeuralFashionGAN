@@ -6,6 +6,7 @@ Based on https://github.com/mseitzer/pytorch-fid/blob/master/fid_score.py
 import os
 import glob
 import pickle
+from os.path import join
 
 import numpy as np
 import torch
