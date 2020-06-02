@@ -199,7 +199,9 @@ class SkipNet(nn.Module):
         self.conv_3 = BasicDownsamplingConBlock(128, 256)
         self.fc_3 = nn.Conv2d(256, skip_dim, kernel_size=1)
         self.conv_4 = BasicDownsamplingConBlock(256, 512)
-        self.fc_4 = nn.Conv2d(512, skip_dim, kernel_size=1)
+        self.mu_fc= nn.Conv2d(512, skip_dim, kernel_size=1)
+        self.sigma_fc = nn.Conv2d(512, skip_dim, kernel_size=1)
+
 
     def forward(self, x):
         skips = []
@@ -210,5 +212,30 @@ class SkipNet(nn.Module):
         x = self.conv_3(x)
         skips.append(self.fc_3(x))
         x = self.conv_4(x)
-        skips.append(self.fc_4(x))
-        return skips
+        mu = self.mu_fc(x)
+        skips.append(mu)
+        sigma = self.sigma_fc(x)
+        return mu, sigma, skips
+
+
+class StyleEncoder(nn.Module):
+    def __init__(self, latent_dim):
+        super(StyleEncoder, self).__init__()
+        self.conv_1 = BasicDownsamplingConBlock(3, 64)
+        self.conv_2 = BasicDownsamplingConBlock(64, 128)
+        self.conv_3 = BasicDownsamplingConBlock(128, 256)
+        self.conv_4 = BasicDownsamplingConBlock(256, 512)
+        self.conv_5 = BasicDownsamplingConBlock(512, 512)
+        self.conv_6 = BasicDownsamplingConBlock(512, 512)
+        self.fc = nn.Linear(8192, latent_dim)
+
+    def forward(self, x):
+        x = self.conv_1(x)
+        x = self.conv_2(x)
+        x = self.conv_3(x)
+        x = self.conv_4(x)
+        x = self.conv_5(x)
+        x = self.conv_6(x)
+        x = torch.reshape(x, (-1, 8192))
+        out = self.fc(x)
+        return out
