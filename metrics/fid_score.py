@@ -6,13 +6,15 @@ Based on https://github.com/mseitzer/pytorch-fid/blob/master/fid_score.py
 import os
 import glob
 import pickle
+import math
 from os.path import join
 
 import numpy as np
 import torch
+import cv2
 from scipy import linalg
 from torch.nn.functional import adaptive_avg_pool2d
-import cv2
+from tqdm import tqdm
 
 from models.inception import InceptionV3
 
@@ -21,7 +23,7 @@ def get_activations(image_iter, model, dims=2048):
     model.eval()
     pred_arr = np.empty((image_iter.total_len(), dims))
     pos = 0
-    for batch in iter(image_iter):
+    for batch in tqdm(iter(image_iter)):
         pred = model(batch)[0]
 
         # If model output is not scalar, apply global spatial average pooling.
@@ -122,6 +124,9 @@ class DatasetIterator:
 
         self.counter += self.batch_size
         return batch
+
+    def len(self):
+        return math.ceil(self.n_images / self.batch_size)
 
     def total_len(self):
         return self.n_images
