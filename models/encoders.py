@@ -6,7 +6,7 @@ import torchvision
 class BasicDownsamplingConBlock(nn.Module):
     def __init__(self, inc, nc):
         super(BasicDownsamplingConBlock, self).__init__()
-        self.conv = nn.Conv2d(inc, nc, kernel_size=3, stride=2, padding=1)
+        self.conv = nn.utils.spectral_norm(nn.Conv2d(inc, nc, kernel_size=3, stride=2, padding=1))
         self.norm = nn.InstanceNorm2d(nc)
         self.leaky = nn.LeakyReLU(0.2, inplace=True)
 
@@ -46,19 +46,19 @@ class UnetEncoder(nn.Module):
         super(UnetEncoder, self).__init__()
         self.rs = rs
         self.conv_1 = BasicDownsamplingConBlock(3, 64)
-        self.skip_1 = nn.Sequential(nn.Conv2d(64, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        self.skip_1 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(64, skip_dim, kernel_size=1)), nn.ReLU(inplace=True))
         self.conv_2 = BasicDownsamplingConBlock(64, 128)
-        self.skip_2 = nn.Sequential(nn.Conv2d(128, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        self.skip_2 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(128, skip_dim, kernel_size=1)), nn.ReLU(inplace=True))
         self.conv_3 = BasicDownsamplingConBlock(128, 256)
-        self.skip_3 = nn.Sequential(nn.Conv2d(256, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        self.skip_3 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(256, skip_dim, kernel_size=1)), nn.ReLU(inplace=True))
         self.conv_4 = BasicDownsamplingConBlock(256, 512)
-        self.skip_4 = nn.Sequential(nn.Conv2d(512, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        self.skip_4 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1)), nn.ReLU(inplace=True))
         self.conv_5 = BasicDownsamplingConBlock(512, 512)
-        self.skip_5 = nn.Sequential(nn.Conv2d(512, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
+        self.skip_5 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1)), nn.ReLU(inplace=True))
         self.conv_6 = BasicDownsamplingConBlock(512, 512)
-        self.skip_6 = nn.Sequential(nn.Conv2d(512, skip_dim, kernel_size=1), nn.ReLU(inplace=True))
-        self.mu_fc = nn.Linear(8192//(rs**2), latent_dim)
-        self.sigma_fc = nn.Linear(8192//(rs**2), latent_dim)
+        self.skip_6 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1)), nn.ReLU(inplace=True))
+        self.mu_fc = nn.utils.spectral_norm(nn.Linear(8192//(rs**2), latent_dim))
+        self.sigma_fc = nn.utils.spectral_norm(nn.Linear(8192//(rs**2), latent_dim))
 
     def forward(self, x):
         skips = []

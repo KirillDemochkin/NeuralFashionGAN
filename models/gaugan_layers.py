@@ -28,7 +28,7 @@ class SPADE_ResBlock(nn.Module):
         self.conv_1 = nn.utils.spectral_norm(nn.Conv2d(in_filters, n_filters, kernel_size=3, padding=1))
         self.spade_2 = SPADE(scale_factor, n_filters, mask_channels)
         self.relu_2 = nn.ReLU(inplace=True)
-        self.conv_2 = nn.Conv2d(n_filters, n_filters, kernel_size=3, padding=1)
+        self.conv_2 = nn.utils.spectral_norm(nn.Conv2d(n_filters, n_filters, kernel_size=3, padding=1))
         self.spade_skip = SPADE(scale_factor, in_filters, mask_channels)
         self.relu_skip = nn.ReLU(inplace=True)
         self.conv_skip = nn.utils.spectral_norm(nn.Conv2d(in_filters, n_filters, kernel_size=3, padding=1))
