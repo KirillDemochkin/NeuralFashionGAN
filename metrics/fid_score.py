@@ -154,6 +154,6 @@ def precompute_dataset_statistics(path_to_images, path_to_save, device='cpu', ba
     block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
     model = InceptionV3([block_idx]).to(device)
 
-    diter = DatasetIterator(path_to_images, batch_size)
+    diter = DatasetIterator(path_to_images, batch_size, device=device)
     ms = calculate_activation_statistics(get_activations(diter, model, dims))
     pickle.dump(ms, path_to_save)
