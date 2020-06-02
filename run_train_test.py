@@ -102,7 +102,7 @@ train_loader = data_utils.DataLoader(train_dataset, batch_size=args.batch_size, 
 #val_loader = data_utils.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
 
 test_batch = next(iter(train_loader))
-fixed_test_images = test_batch[0].to(device)
+fixed_test_images = test_batch[2].to(device)
 fixed_test_masks = test_batch[1].to(device)
 
 _ = vutils.save_image(test_batch[0].data[:16], '!test.png', normalize=True)
@@ -170,7 +170,7 @@ def train():
             real_preds, real_feats = netD(torch.clamp(real_image + jitter_real, -1.0, 1.0), mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
-            latent_code, mu, sigma, skips = netE(real_image)
+            latent_code, mu, sigma, skips = netE(masked_image)
             fake = netG(latent_code, mask, skips)
             fake_preds, fake_feats = netD(torch.clamp(fake.detach()+jitter_fake, -1.0, 1.0), mask)
             errD = 0.0
