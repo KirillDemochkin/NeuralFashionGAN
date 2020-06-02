@@ -102,7 +102,7 @@ train_loader = data_utils.DataLoader(train_dataset, batch_size=args.batch_size, 
 #val_loader = data_utils.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
 
 test_batch = next(iter(train_loader))
-fixed_test_images = test_batch[2].to(device)
+fixed_test_images = test_batch[0].to(device)
 fixed_test_masks = test_batch[1].to(device)
 
 _ = vutils.save_image(test_batch[0].data[:16], '!test.png', normalize=True)

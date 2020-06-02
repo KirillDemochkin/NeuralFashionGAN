@@ -6,7 +6,7 @@ import torchvision
 class BasicDownsamplingConBlock(nn.Module):
     def __init__(self, inc, nc):
         super(BasicDownsamplingConBlock, self).__init__()
-        self.conv = nn.utils.spectral_norm(nn.Conv2d(inc, nc, kernel_size=3, stride=2, padding=1))
+        self.conv = nn.Conv2d(inc, nc, kernel_size=3, stride=2, padding=1)
         self.norm = nn.InstanceNorm2d(nc)
         self.leaky = nn.LeakyReLU(0.2, inplace=True)
 
@@ -57,8 +57,8 @@ class UnetEncoder(nn.Module):
         self.skip_5 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1)), nn.ReLU(inplace=True))
         self.conv_6 = BasicDownsamplingConBlock(512, 512)
         self.skip_6 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1)), nn.ReLU(inplace=True))
-        self.mu_fc = nn.utils.spectral_norm(nn.Linear(8192//(rs**2), latent_dim))
-        self.sigma_fc = nn.utils.spectral_norm(nn.Linear(8192//(rs**2), latent_dim))
+        self.mu_fc = nn.Linear(8192//(rs**2), latent_dim)
+        self.sigma_fc = nn.Linear(8192//(rs**2), latent_dim)
 
     def forward(self, x):
         skips = []
