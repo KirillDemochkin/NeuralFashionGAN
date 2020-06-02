@@ -20,7 +20,7 @@ def get_activations(image_iter, model, dims=2048):
     model.eval()
     pred_arr = np.empty((image_iter.total_len(), dims))
     pos = 0
-    for batch in image_iter:
+    for batch in iter(image_iter):
         pred = model(batch)[0]
 
         # If model output is not scalar, apply global spatial average pooling.
@@ -106,7 +106,9 @@ class DatasetIterator:
         self.batch_size = batch_size
         self.device = device
 
+    def __iter__(self):
         self.counter = 0
+        return self
 
     def __next__(self):
         if self.counter >= self.n_images:
