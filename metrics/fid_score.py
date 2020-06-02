@@ -134,16 +134,17 @@ class DatasetIterator:
         return self.n_images
 
 
-def calculate_fid(gen_iter, path_to_precomputed, device='cpu', batch_size=64, dims=2048):
+def calculate_fid(path_to_images, path_to_precomputed, device='cpu', batch_size=1, dims=2048):
     """
     Calculates the FID score
 
     Parameters
     ----------
-    gen_iter: iterator which yields batch of generated images on every iteration. 
-              Must have function 'total_len' which returns total number of images
+    path_to_images: path to folder with generated images
     path_to_precomputed: path to pickle file with tuple (mean, covariation_matrix) for chosen dataset
-
+    device: 'cpu' or 'cuda'
+    batch_size: now only batch_size=1 is supported
+    dims: just keep default value
     Return
     ------
     fid_value: value of FID score
@@ -151,13 +152,14 @@ def calculate_fid(gen_iter, path_to_precomputed, device='cpu', batch_size=64, di
     block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
     model = InceptionV3([block_idx]).to(device)
 
-    m1, s1 = calculate_activation_statistics(get_activations(gen_iter, model, dims))
+    diter = DatasetIterator(path_to_images, batch_size, device=device)
+    m1, s1 = calculate_activation_statistics(get_activations(diter, model, dims))
     m2, s2 = load_precomputed_statistics(path_to_precomputed)
 
     fid_value = calculate_frechet_distance(m1, s1, m2, s2)
     return fid_value
 
-def precompute_dataset_statistics(path_to_images, path_to_save, device='cpu', batch_size=64, dims=2048):
+def precompute_dataset_statistics(path_to_images, path_to_save, device='cpu', batch_size=1, dims=2048):
     block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
     model = InceptionV3([block_idx]).to(device)
 
