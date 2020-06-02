@@ -206,7 +206,8 @@ def train():
             for ff, rf in zip(fake_feats, real_feats):
                 errG_fm += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
             errG_fm.backward()
-            errG = errG_hinge.item() + errG_fm.item() + errG_p.item() + l1.item()
+            #errG = errG_hinge.item() + errG_fm.item() + errG_p.item() + l1.item()
+            errG = errG_hinge.item() + errG_fm.item() + errG_p.item()# + l1.item()
 
             optimizerG.step()
             optimizerE.step()
