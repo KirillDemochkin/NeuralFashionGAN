@@ -114,7 +114,7 @@ netD.apply(weights_init)
 netG = GauGANGenerator(args.mask_channels, args.encoder_latent_dim, 2).to(device)
 netG.apply(weights_init)
 
-netE = BasicEncoder(args.encoder_latent_dim, 2).to(device)
+netE = BasicEncoder(args.encoder_latent_dim, args.unet_ch, 2).to(device)
 netE.apply(weights_init)
 
 vgg = Vgg19Full().to(device)
