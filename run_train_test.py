@@ -93,8 +93,7 @@ transform = Compose([Resize(resize_height, resize_width),
                     ToTensorV2()])
 
 
-train_dataset = DeepFashion2Dataset(os.path.join(args.data_root, 'validation'),  transform=transform, return_masked_image=True)
-#val_dataset = DeepFashion2Dataset(os.path.join(args.data_root, 'validation'),  transform=transform, return_masked_image= True )
+train_dataset = DeepFashion2DatasetOC(os.path.join(args.data_root, 'validation'),  transform=transform)
 
 print('Loading Dataset...')
 sys.stdout.flush()
@@ -102,7 +101,7 @@ train_loader = data_utils.DataLoader(train_dataset, batch_size=args.batch_size, 
 #val_loader = data_utils.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True)
 
 test_batch = next(iter(train_loader))
-fixed_test_images = test_batch[2].to(device)
+fixed_test_images = test_batch[0].to(device)
 fixed_test_masks = test_batch[1].to(device)
 
 _ = vutils.save_image(test_batch[0].data[:16], '!test.png', normalize=True)
@@ -225,7 +224,9 @@ def train():
                     netG.eval()
                     netE.eval()
                     test_code, _, _, test_skips = netE(fixed_test_images)
-                    test_generated = netG(test_code, fixed_test_masks, test_skips).detach().cpu()
+                    test_generated = netG(test_code, fixed_test_masks, test_skips)
+                    mask = torch.clamp(fixed_test_masks.sum(dim=1, keepdims=True), 0, 1)
+                    test_generated = (mask * test_generated + (1 - mask) * fixed_test_images).cpu()
                     netG.train()
                     netE.train()
                 tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch), normalize=True, save=False)
@@ -243,7 +244,9 @@ def train():
                 netG.eval()
                 netE.eval()
                 test_code, _, _, test_skips = netE(fixed_test_images)
-                test_generated = netG(test_code, fixed_test_masks, test_skips).detach().cpu()
+                test_generated = netG(test_code, fixed_test_masks, test_skips)
+                mask = torch.clamp(fixed_test_masks.sum(dim=1, keepdims=True), 0, 1)
+                test_generated = (mask * test_generated + (1 - mask) * fixed_test_images).cpu()
                 netG.train()
                 netE.train()
             #img_list.append(fake.data.numpy())
