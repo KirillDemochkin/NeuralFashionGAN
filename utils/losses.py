@@ -2,7 +2,7 @@ import torch
 
 
 def KL_divergence(mu, logsigma):
-    return -0.5 * torch.sum(1 + logsigma - mu ** 2 - torch.exp(logsigma))
+    return -0.5 * torch.sum(1 + logsigma - mu.pow(2) - logsigma.exp())
 
 
 def hinge_loss_discriminator(fake_preds, real_preds):
