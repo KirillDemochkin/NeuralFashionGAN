@@ -135,7 +135,7 @@ class GauGANUnetStylizationGenerator(nn.Module):
 
         # self.spd_blck_7 = SPADE_ResBlock(1, latent_dim // 2, latent_dim // 4, mask_channels)
         # self.upsample_7 = nn.UpsamplingNearest2d(scale_factor=2)
-
+        self.leaky = nn.LeakyReLU(0.2, inplace=True)
         self.out_conv = nn.Conv2d(latent_dim // 2, 3, kernel_size=3, padding=1)
         # self.out_conv = nn.Conv2d(latent_dim *2, 3, kernel_size=3, padding=1)
         self.tanh = nn.Tanh()
@@ -159,6 +159,6 @@ class GauGANUnetStylizationGenerator(nn.Module):
         x = self.upsample_5(self.spd_blck_5(torch.cat((x, skips[1]), dim=1) + style_noise[4], mask, style_code))
         x = self.upsample_6(self.spd_blck_6(torch.cat((x, skips[0]), dim=1) + style_noise[5], mask, style_code))
         # x = self.upsample_7(self.spd_blck_7(x, mask))
-        x = self.tanh(self.out_conv(x))
+        x = self.tanh(self.out_conv(self.leaky(x)))
         return x
 
