@@ -113,7 +113,7 @@ _ = vutils.save_image(fixed_test_real_images.cpu().data[:16], '!test.png', norma
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
 netD.apply(weights_init)
 
-netG = GauGANUnetStylizationGenerator(args.mask_channels, args.encoder_latent_dim, 2, args.unet_ch).to(device)
+netG = GauGANUnetStylizationGenerator(args.mask_channels, args.encoder_latent_dim, 2, args.unet_ch, device).to(device)
 netG.apply(weights_init)
 
 netS = StyleEncoder(args.encoder_latent_dim, args.unet_ch, 2).to(device)
