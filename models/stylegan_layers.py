@@ -9,10 +9,9 @@ class AdaIN(nn.Module):
         self.sigma_fc = nn.Linear(latent_size, num_ch)
 
     def forward(self, x, a):
-        x = torch.div(torch.sub(x, torch.mean(torch.mean(x, dim=2, keepdim=True), dim=3, keepdim=True)), torch.std(torch.std(x, dim=2, keepdim=True), dim=3, keepdim=True)+1e-10)
+        x = torch.div(torch.sub(x, torch.mean(torch.mean(x, dim=2, keepdim=True), dim=3, keepdim=True)), torch.std(torch.std(x + 1e-6, dim=2, keepdim=True) + 1e-6, dim=3, keepdim=True) + 1e-6)
         mu = self.mu_fc(a).unsqueeze(2).unsqueeze(3)
         sigma = torch.exp(0.5*self.sigma_fc(a).unsqueeze(2).unsqueeze(3))
-
         return x * sigma + mu
 
 
