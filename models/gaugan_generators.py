@@ -112,7 +112,7 @@ class GauGANUnetStylizationGenerator(nn.Module):
         self.latent_dim = latent_dim
         self.skip_dim = skip_dim
         self.device = device
-        self.starting_noise = torch.empty(1, latent_dim, device=device).normal_(0, 0.02)
+        self.starting_noise = torch.zeros(1, latent_dim, device=device).normal_(0, 0.02)
         self.starting_noise.requires_grad_(True)
 
         self.spd_blck_1 = Style_SPADE_ResBlock(1 / 2 ** 6, latent_dim * 4 + skip_dim, latent_dim * 4, mask_channels, latent_dim)
