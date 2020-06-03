@@ -56,7 +56,9 @@ class Style_SPADE(nn.Module):
         conditional_features = self.shared_conv(mask)
         mu = self.mu_conv(conditional_features)
         sigma = self.sigma_conv(conditional_features)
-        return (self.bn(x, style_code) * sigma) + mu
+        adapted_input = self.bn(x, style_code)
+        print(adapted_input.shape, mu.shape)
+        return (adapted_input * sigma) + mu
 
 
 class Style_SPADE_ResBlock(nn.Module):
