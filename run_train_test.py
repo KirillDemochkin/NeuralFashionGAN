@@ -239,7 +239,7 @@ def train():
                 netG.eval()
                 netS.eval()
                 _, test_skips = netS(fixed_test_images)
-                test_embed, _ = netS(fixed_test_real_images)
+                test_embed, _ = netS(fixed_test_real_images, False)
                 test_generated = netG(test_embed, fixed_test_masks, test_skips).detach().cpu()
                 netG.train()
                 netS.train()

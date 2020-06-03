@@ -112,7 +112,7 @@ class GauGANUnetStylizationGenerator(nn.Module):
         self.latent_dim = latent_dim
         self.skip_dim = skip_dim
         self.device = device
-        self.starting_noise = torch.empty(1, latent_dim, 1, 1, device=device).normal_(0, 0.02)
+        self.starting_noise = torch.empty(1, latent_dim, device=device).normal_(0, 0.02)
         self.starting_noise.requires_grad_(True)
 
         self.spd_blck_1 = Style_SPADE_ResBlock(1 / 2 ** 4, latent_dim * 4, latent_dim * 4, mask_channels, latent_dim)
@@ -149,7 +149,7 @@ class GauGANUnetStylizationGenerator(nn.Module):
                                       torch.randn(style_code.shape[0], self.latent_dim * 2 + self.skip_dim, self.initial_image_size*16, self.initial_image_size*16, device=self.device),
                                       torch.randn(style_code.shape[0], self.latent_dim + self.skip_dim, self.initial_image_size*32, self.initial_image_size*32, device=self.device)])
 
-        x = self.starting_noise.repeat(style_vec.shape[0], 1, 1, 1)
+        x = self.starting_noise.repeat(style_vec.shape[0], 1)
         x = self.linear(x)
         x = torch.reshape(x, (-1, self.latent_dim*4, self.initial_image_size, self.initial_image_size))
         x = self.upsample_1(self.spd_blck_1(torch.cat((x, skips[5]), dim=1) + style_noise[0], mask, style_code))
