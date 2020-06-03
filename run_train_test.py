@@ -160,61 +160,62 @@ def train():
             # D network
             ###########################
             ## Train with all-real batch
-            netD.zero_grad()
-            real_image, mask = data[0].to(device), data[1].to(device)
-            #print(real_image.shape, mask.shape)
-            real_preds, real_feats = netD(real_image, mask)
-            ## Train with all-fake batch
-            # noise = torch.randn(b_size, nz, 1, 1, device=device)
-            latent_code, mu, sigma = netE(real_image)
-            fake = netG(latent_code, mask)
-            fake_preds, fake_feats = netD(fake.detach(), mask)
+            with torch.autograd.detect_anomaly():
+                netD.zero_grad()
+                real_image, mask = data[0].to(device), data[1].to(device)
+                #print(real_image.shape, mask.shape)
+                real_preds, real_feats = netD(real_image, mask)
+                ## Train with all-fake batch
+                # noise = torch.randn(b_size, nz, 1, 1, device=device)
+                latent_code, mu, sigma = netE(real_image)
+                fake = netG(latent_code, mask)
+                fake_preds, fake_feats = netD(fake.detach(), mask)
 
-            errD = 0.0
-            for fp, rp in zip(fake_preds, real_preds):
-                errD += losses.hinge_loss_discriminator(fp, rp)
-            errD.backward()
-            optimizerD.step()
+                errD = 0.0
+                for fp, rp in zip(fake_preds, real_preds):
+                    errD += losses.hinge_loss_discriminator(fp, rp)
+                errD.backward()
+                optimizerD.step()
 
-            # dump train metrics to tensorboard
-            if writer is not None:
-                writer.add_scalar(f"loss_D", errD.item(), global_i)
-            ############################
-            # G network
-            ###########################
-            netG.zero_grad()
-            netE.zero_grad()
-            dkl = args.kl_lambda * losses.KL_divergence(mu, sigma)
-            dkl.backward(retain_graph=True)
-            fake_vgg_feats = vgg(fake)
-            real_vgg_feats = vgg(real_image)
-            errG_p = 0.0
-            for ff, rf in zip(fake_vgg_feats, real_vgg_feats):
-                errG_p += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
-            errG_p.backward(retain_graph=True)
-            fake_preds, fake_feats = netD(fake, mask) ##view -1
-            errG_hinge = 0.0
-            for fp in fake_preds:
-                errG_hinge += losses.hinge_loss_generator(fp)
-            errG_hinge.backward(retain_graph=True)
-            errG_fm = 0.0
-            for ff, rf in zip(fake_feats, real_feats):
-                errG_fm += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
-            errG_fm.backward()
-            errG = errG_hinge.item() + errG_fm.item()
+                # dump train metrics to tensorboard
+                if writer is not None:
+                    writer.add_scalar(f"loss_D", errD.item(), global_i)
+                ############################
+                # G network
+                ###########################
+                netG.zero_grad()
+                netE.zero_grad()
+                dkl = args.kl_lambda * losses.KL_divergence(mu, sigma)
+                dkl.backward(retain_graph=True)
+                fake_vgg_feats = vgg(fake)
+                real_vgg_feats = vgg(real_image)
+                errG_p = 0.0
+                for ff, rf in zip(fake_vgg_feats, real_vgg_feats):
+                    errG_p += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
+                errG_p.backward(retain_graph=True)
+                fake_preds, fake_feats = netD(fake, mask) ##view -1
+                errG_hinge = 0.0
+                for fp in fake_preds:
+                    errG_hinge += losses.hinge_loss_generator(fp)
+                errG_hinge.backward(retain_graph=True)
+                errG_fm = 0.0
+                for ff, rf in zip(fake_feats, real_feats):
+                    errG_fm += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
+                errG_fm.backward()
+                errG = errG_hinge.item() + errG_fm.item()
 
-            optimizerG.step()
-            optimizerE.step()
-            if writer is not None:
-                writer.add_scalar(f"loss_G", errG, global_i)
-            # Output training stats
-            if i % 100 == 99:
-                print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t'
-                      % (epoch, num_epochs, i, len(train_loader), errD.item(), errG))
-                sys.stdout.flush()
+                optimizerG.step()
+                optimizerE.step()
+                if writer is not None:
+                    writer.add_scalar(f"loss_G", errG, global_i)
+                # Output training stats
+                if i % 100 == 99:
+                    print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t'
+                          % (epoch, num_epochs, i, len(train_loader), errD.item(), errG))
+                    sys.stdout.flush()
 
-            G_losses.append(errG)
-            D_losses.append(errD)
+                G_losses.append(errG)
+                D_losses.append(errD)
 
             # Check how the generator is doing by saving G's output on fixed_noise
         end = time.time()
