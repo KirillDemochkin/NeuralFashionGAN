@@ -42,6 +42,6 @@ class StylizationNoiseNetwork(nn.Module):
         scaled_noise_2 = torch.mul(x[1], self.B2)
         scaled_noise_3 = torch.mul(x[2], self.B3)
         scaled_noise_4 = torch.mul(x[3], self.B4)
-        scaled_noise_5 = torch.mul(x[3], self.B5)
-        scaled_noise_6 = torch.mul(x[3], self.B6)
+        scaled_noise_5 = torch.mul(x[4], self.B5)
+        scaled_noise_6 = torch.mul(x[5], self.B6)
         return scaled_noise_1, scaled_noise_2, scaled_noise_3, scaled_noise_4, scaled_noise_5, scaled_noise_6
