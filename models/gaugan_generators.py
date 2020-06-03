@@ -115,16 +115,16 @@ class GauGANUnetStylizationGenerator(nn.Module):
         self.starting_noise = torch.empty(1, latent_dim, device=device).normal_(0, 0.02)
         self.starting_noise.requires_grad_(True)
 
-        self.spd_blck_1 = Style_SPADE_ResBlock(1 / 2 ** 4, latent_dim * 4 + skip_dim, latent_dim * 4, mask_channels, latent_dim)
+        self.spd_blck_1 = Style_SPADE_ResBlock(1 / 2 ** 6, latent_dim * 4 + skip_dim, latent_dim * 4, mask_channels, latent_dim)
         self.upsample_1 = nn.UpsamplingNearest2d(scale_factor=2)
 
-        self.spd_blck_2 = Style_SPADE_ResBlock(1 / 2 ** 3, latent_dim * 4 + skip_dim, latent_dim * 4, mask_channels, latent_dim)
+        self.spd_blck_2 = Style_SPADE_ResBlock(1 / 2 ** 5, latent_dim * 4 + skip_dim, latent_dim * 4, mask_channels, latent_dim)
         self.upsample_2 = nn.UpsamplingNearest2d(scale_factor=2)
 
-        self.spd_blck_3 = Style_SPADE_ResBlock(1 / 2 ** 2, latent_dim * 4 + skip_dim, latent_dim * 4, mask_channels, latent_dim)
+        self.spd_blck_3 = Style_SPADE_ResBlock(1 / 2 ** 4, latent_dim * 4 + skip_dim, latent_dim * 4, mask_channels, latent_dim)
         self.upsample_3 = nn.UpsamplingNearest2d(scale_factor=2)
 
-        self.spd_blck_4 = Style_SPADE_ResBlock(1 / 2 ** 1, latent_dim * 4 + skip_dim, latent_dim * 2, mask_channels, latent_dim)
+        self.spd_blck_4 = Style_SPADE_ResBlock(1 / 2 ** 3, latent_dim * 4 + skip_dim, latent_dim * 2, mask_channels, latent_dim)
         self.upsample_4 = nn.UpsamplingNearest2d(scale_factor=2)
 
         self.spd_blck_5 = Style_SPADE_ResBlock(1 / 2 ** 2, latent_dim * 2 + skip_dim, latent_dim, mask_channels, latent_dim)
