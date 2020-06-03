@@ -163,74 +163,75 @@ def train():
             # D network
             ###########################
             ## Train with all-real batch
-            netD.zero_grad()
-            real_image, mask, masked_image, loss_mask = data[0].to(device), data[1].to(device), data[2].to(device), data[3].to(device)
-            #jitter_real = torch.empty_like(real_image, device=device).uniform_(-0.1 * (0.99 ** epoch), 0.1 * (0.99 ** epoch))
-            #jitter_fake = torch.empty_like(real_image, device=device).uniform_(-0.1 * (0.99 ** epoch), 0.1 * (0.99 ** epoch))
-            real_preds, real_feats = netD(real_image, mask)
-            #real_preds, real_feats = netD(torch.clamp(real_image + jitter_real, -1, 1), mask)
-            ## Train with all-fake batch
-            # noise = torch.randn(b_size, nz, 1, 1, device=device)
-            _, skips = netS(masked_image)
-            embed, _ = netS(real_image, False)
-            fake = netG(embed, mask, skips)
-            #fake_preds, fake_feats = netD(torch.clamp(fake.detach() + jitter_fake, -1, 1), mask)
-            fake_preds, fake_feats = netD(fake.detach(), mask)
-            errD = 0.0
-            for fp, rp in zip(fake_preds, real_preds):
-                errD += losses.hinge_loss_discriminator(fp, rp)
-            errD.backward()
-            optimizerD.step()
+            with torch.autograd.detect_anomaly():
+                netD.zero_grad()
+                real_image, mask, masked_image, loss_mask = data[0].to(device), data[1].to(device), data[2].to(device), data[3].to(device)
+                #jitter_real = torch.empty_like(real_image, device=device).uniform_(-0.1 * (0.99 ** epoch), 0.1 * (0.99 ** epoch))
+                #jitter_fake = torch.empty_like(real_image, device=device).uniform_(-0.1 * (0.99 ** epoch), 0.1 * (0.99 ** epoch))
+                real_preds, real_feats = netD(real_image, mask)
+                #real_preds, real_feats = netD(torch.clamp(real_image + jitter_real, -1, 1), mask)
+                ## Train with all-fake batch
+                # noise = torch.randn(b_size, nz, 1, 1, device=device)
+                _, skips = netS(masked_image)
+                embed, _ = netS(real_image, False)
+                fake = netG(embed, mask, skips)
+                #fake_preds, fake_feats = netD(torch.clamp(fake.detach() + jitter_fake, -1, 1), mask)
+                fake_preds, fake_feats = netD(fake.detach(), mask)
+                errD = 0.0
+                for fp, rp in zip(fake_preds, real_preds):
+                    errD += losses.hinge_loss_discriminator(fp, rp)
+                errD.backward()
+                optimizerD.step()
 
-            # dump train metrics to tensorboard
-            if writer is not None:
-                writer.add_scalar(f"loss_D", errD.item(), global_i)
-            ############################
-            # G network
-            ###########################
-            netG.zero_grad()
-            netS.zero_grad()
-            #l1 = losses.masked_l1(fake, masked_image, loss_mask) * args.cycle_lambda
-            #l1.backward(retain_graph=True)
-            fake_vgg_f = vgg(fake)
-            real_vgg_f = vgg(real_image)
-            errG_p = 0.0
-            for ff, rf in zip(fake_vgg_f, real_vgg_f):
-                errG_p += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
-            errG_p.backward(retain_graph=True)
-            fake_preds, fake_feats = netD(fake, mask)
-            errG_hinge = 0.0
-            for fp in fake_preds:
-                errG_hinge += losses.hinge_loss_generator(fp)
-            errG_hinge.backward(retain_graph=True)
-            errG_fm = 0.0
-            for ff, rf in zip(fake_feats, real_feats):
-                errG_fm += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
-            errG_fm.backward()
-            errG = errG_hinge.item() + errG_fm.item() + errG_p.item() #+ l1.item()
+                # dump train metrics to tensorboard
+                if writer is not None:
+                    writer.add_scalar(f"loss_D", errD.item(), global_i)
+                ############################
+                # G network
+                ###########################
+                netG.zero_grad()
+                netS.zero_grad()
+                #l1 = losses.masked_l1(fake, masked_image, loss_mask) * args.cycle_lambda
+                #l1.backward(retain_graph=True)
+                fake_vgg_f = vgg(fake)
+                real_vgg_f = vgg(real_image)
+                errG_p = 0.0
+                for ff, rf in zip(fake_vgg_f, real_vgg_f):
+                    errG_p += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
+                errG_p.backward(retain_graph=True)
+                fake_preds, fake_feats = netD(fake, mask)
+                errG_hinge = 0.0
+                for fp in fake_preds:
+                    errG_hinge += losses.hinge_loss_generator(fp)
+                errG_hinge.backward(retain_graph=True)
+                errG_fm = 0.0
+                for ff, rf in zip(fake_feats, real_feats):
+                    errG_fm += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
+                errG_fm.backward()
+                errG = errG_hinge.item() + errG_fm.item() + errG_p.item() #+ l1.item()
 
-            optimizerG.step()
-            optimizerE.step()
-            if writer is not None:
-                writer.add_scalar(f"loss_G", errG, global_i)
-            # Output training stats
-            if i % 500 == 499:
-               print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t'
-                    % (epoch, num_epochs, i, len(train_loader), errD.item(), errG))
-               sys.stdout.flush()
-               with torch.no_grad():
-                  netG.eval()
-                  netS.eval()
-                  _, test_skips = netS(fixed_test_images)
-                  test_embed, _ = netS(fixed_test_real_images, False)
-                  test_generated = netG(test_embed, fixed_test_masks, test_skips).detach().cpu()
-                  netG.train()
-                  netS.train()
-               tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch),
-                                            normalize=True, save=False)
-               writer.add_image('generated', tim, global_i, dataformats='HWC')
-            G_losses.append(errG)
-            D_losses.append(errD)
+                optimizerG.step()
+                optimizerE.step()
+                if writer is not None:
+                    writer.add_scalar(f"loss_G", errG, global_i)
+                # Output training stats
+                if i % 500 == 499:
+                   print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\t'
+                        % (epoch, num_epochs, i, len(train_loader), errD.item(), errG))
+                   sys.stdout.flush()
+                   with torch.no_grad():
+                      netG.eval()
+                      netS.eval()
+                      _, test_skips = netS(fixed_test_images)
+                      test_embed, _ = netS(fixed_test_real_images, False)
+                      test_generated = netG(test_embed, fixed_test_masks, test_skips).detach().cpu()
+                      netG.train()
+                      netS.train()
+                   tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch),
+                                                normalize=True, save=False)
+                   writer.add_image('generated', tim, global_i, dataformats='HWC')
+                G_losses.append(errG)
+                D_losses.append(errD)
 
         # Check how the generator is doing by saving G's output on fixed_noise
         end = time.time()
