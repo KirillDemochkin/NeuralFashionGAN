@@ -63,7 +63,7 @@ class MappingNetwork(nn.Module):
                                  )
 
     def forward(self, x):
-        x = torch.div(torch.sub(x, torch.mean(x, dim=1, keepdim=True)), torch.std(x, dim=1, keepdim=True) + 1e-10)
+        x = torch.div(torch.sub(x, torch.mean(x, dim=1, keepdim=True)), torch.std(x, dim=1, keepdim=True) + 1e-6)
         return self.net(x)
 
 
@@ -194,17 +194,17 @@ class StyleEncoder(nn.Module):
         super(StyleEncoder, self).__init__()
         self.rs = rs
         self.conv_1 = BasicDownsamplingConBlock(3, 64)
-        self.fc_1 = nn.Sequential(nn.Conv2d(64, skip_dim, kernel_size=1), nn.LeakyReLU(0.2, inplace=True))
+        self.fc_1 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(64, skip_dim, kernel_size=1), eps=1e-6), nn.LeakyReLU(0.2, inplace=True))
         self.conv_2 = BasicDownsamplingConBlock(64, 128)
-        self.fc_2 = nn.Sequential(nn.Conv2d(128, skip_dim, kernel_size=1), nn.LeakyReLU(0.2, inplace=True))
+        self.fc_2 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(128, skip_dim, kernel_size=1), eps=1e-6), nn.LeakyReLU(0.2, inplace=True))
         self.conv_3 = BasicDownsamplingConBlock(128, 256)
-        self.fc_3 = nn.Sequential(nn.Conv2d(256, skip_dim, kernel_size=1), nn.LeakyReLU(0.2, inplace=True))
+        self.fc_3 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(256, skip_dim, kernel_size=1), eps=1e-6), nn.LeakyReLU(0.2, inplace=True))
         self.conv_4 = BasicDownsamplingConBlock(256, 512)
-        self.fc_4 = nn.Sequential(nn.Conv2d(512, skip_dim, kernel_size=1), nn.LeakyReLU(0.2, inplace=True))
+        self.fc_4 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1), eps=1e-6), nn.LeakyReLU(0.2, inplace=True))
         self.conv_5 = BasicDownsamplingConBlock(512, 512)
-        self.fc_5 = nn.Sequential(nn.Conv2d(512, skip_dim, kernel_size=1), nn.LeakyReLU(0.2, inplace=True))
+        self.fc_5 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1), eps=1e-6), nn.LeakyReLU(0.2, inplace=True))
         self.conv_6 = BasicDownsamplingConBlock(512, 512)
-        self.fc_6 = nn.Sequential(nn.Conv2d(512, skip_dim, kernel_size=1), nn.LeakyReLU(0.2, inplace=True))
+        self.fc_6 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1), eps=1e-6), nn.LeakyReLU(0.2, inplace=True))
         self.fc = nn.Linear(8192//(rs**2), latent_dim)
 
     def forward(self, x, need_skips=True):

@@ -46,7 +46,7 @@ parser.add_argument('--num_workers', default=3,
 parser.add_argument('--cuda', default=True,
                     type=bool, help='Use cuda to train model')
 parser.add_argument('--lr', '--learning-rate',
-                    default=0.0002, type=float, help='initial learning rate')
+                    default=0.00001, type=float, help='initial learning rate')
 parser.add_argument('-epoch', '--max_epoch', default=200,
                     type=int, help='max epoch for training')
 parser.add_argument('--save_folder', default='img/',
@@ -59,7 +59,7 @@ parser.add_argument('--weight_decay', default=5e-4,
 parser.add_argument('--momentum', default=0.999, type=float, help='momentum')
 parser.add_argument('--betas', default=0.5,
                     type=float)
-parser.add_argument('--fm_lambda', default=5, type=float)
+parser.add_argument('--fm_lambda', default=10, type=float)
 parser.add_argument('--cycle_lambda', default=5, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
 parser.add_argument('--encoder_latent_dim', default=256, type=float)
@@ -165,15 +165,17 @@ def train():
             ## Train with all-real batch
             netD.zero_grad()
             real_image, mask, masked_image, loss_mask = data[0].to(device), data[1].to(device), data[2].to(device), data[3].to(device)
-            jitter_real = torch.empty_like(real_image, device=device).uniform_(-0.1 * (0.99 ** epoch), 0.1 * (0.99 ** epoch))
-            jitter_fake = torch.empty_like(real_image, device=device).uniform_(-0.1 * (0.99 ** epoch), 0.1 * (0.99 ** epoch))
-            real_preds, real_feats = netD(torch.clamp(real_image + jitter_real, -1, 1), mask)
+            #jitter_real = torch.empty_like(real_image, device=device).uniform_(-0.1 * (0.99 ** epoch), 0.1 * (0.99 ** epoch))
+            #jitter_fake = torch.empty_like(real_image, device=device).uniform_(-0.1 * (0.99 ** epoch), 0.1 * (0.99 ** epoch))
+            real_preds, real_feats = netD(real_image, mask)
+            #real_preds, real_feats = netD(torch.clamp(real_image + jitter_real, -1, 1), mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
             _, skips = netS(masked_image)
             embed, _ = netS(real_image, False)
             fake = netG(embed, mask, skips)
-            fake_preds, fake_feats = netD(torch.clamp(fake.detach() + jitter_fake, -1, 1), mask)
+            #fake_preds, fake_feats = netD(torch.clamp(fake.detach() + jitter_fake, -1, 1), mask)
+            fake_preds, fake_feats = netD(fake.detach(), mask)
             errD = 0.0
             for fp, rp in zip(fake_preds, real_preds):
                 errD += losses.hinge_loss_discriminator(fp, rp)
