@@ -63,7 +63,7 @@ class MappingNetwork(nn.Module):
                                  )
 
     def forward(self, x):
-        x = torch.div(torch.sub(x, torch.mean(x, dim=1, keepdim=True)), torch.std(x, dim=1, keepdim=True))
+        x = torch.div(torch.sub(x, torch.mean(x, dim=1, keepdim=True)), torch.std(x, dim=1, keepdim=True) + 1e-10)
         return self.net(x)
 
 
