@@ -137,7 +137,7 @@ if args.load:
     netD.load(resume_netD_path)
     netS.load(resume_netS_path)
 
-optimizerD = optim.Adam(netD.parameters(), lr=0.0004, betas=(args.betas, args.momentum),
+optimizerD = optim.Adam(netD.parameters(), lr=0.0004, betas=(0.1, args.momentum),
                         weight_decay=args.weight_decay)
 optimizerG = optim.Adam(netG.parameters(), lr=0.0001, betas=(args.betas, args.momentum),
                         weight_decay=args.weight_decay)
