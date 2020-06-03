@@ -165,14 +165,15 @@ def train():
             ## Train with all-real batch
             netD.zero_grad()
             real_image, mask, masked_image, loss_mask = data[0].to(device), data[1].to(device), data[2].to(device), data[3].to(device)
-
-            real_preds, real_feats = netD(real_image, mask)
+            jitter_real = torch.empty_like(real_image, device=device).uniform_(-0.1 * (0.99 ** epoch), 0.1 * (0.99 ** epoch))
+            jitter_fake = torch.empty_like(real_image, device=device).uniform_(-0.1 * (0.99 ** epoch), 0.1 * (0.99 ** epoch))
+            real_preds, real_feats = netD(torch.clamp(real_image + jitter_real, -1, 1), mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
             _, skips = netS(masked_image)
             embed, _ = netS(real_image, False)
             fake = netG(embed, mask, skips)
-            fake_preds, fake_feats = netD(fake.detach(), mask)
+            fake_preds, fake_feats = netD(torch.clamp(fake.detach() + jitter_fake, -1, 1), mask)
             errD = 0.0
             for fp, rp in zip(fake_preds, real_preds):
                 errD += losses.hinge_loss_discriminator(fp, rp)
