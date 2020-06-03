@@ -97,7 +97,7 @@ class GauGANUnetGenerator(nn.Module):
 
 
 class GauGANUnetStylizationGenerator(nn.Module):
-    def __init__(self, mask_channels, latent_dim, initial_image_size, skip_dim):
+    def __init__(self, mask_channels, latent_dim, initial_image_size, skip_dim, device):
         super(GauGANUnetStylizationGenerator, self).__init__()
         self.mapping_net = MappingNetwork(latent_dim)
         self.noise_net = StylizationNoiseNetwork([latent_dim * 4 + skip_dim,
@@ -106,12 +106,12 @@ class GauGANUnetStylizationGenerator(nn.Module):
                                                   latent_dim * 4 + skip_dim,
                                                   latent_dim * 2 + skip_dim,
                                                   latent_dim + skip_dim
-                                                  ])
+                                                  ], device)
         self.linear = nn.Linear(latent_dim, initial_image_size*initial_image_size*latent_dim*4)
         self.initial_image_size = initial_image_size
         self.latent_dim = latent_dim
         self.skip_dim = skip_dim
-        self.starting_noise = torch.empty(1, latent_dim, 1, 1).normal_(0, 0.02)
+        self.starting_noise = torch.empty(1, latent_dim, 1, 1, device=device).normal_(0, 0.02)
         self.starting_noise.requires_grad_(True)
 
         self.spd_blck_1 = Style_SPADE_ResBlock(1 / 2 ** 4, latent_dim * 4, latent_dim * 4, mask_channels, latent_dim)

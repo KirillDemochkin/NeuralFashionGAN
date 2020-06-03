@@ -15,25 +15,25 @@ class AdaIN(nn.Module):
 
 
 class StylizationNoiseNetwork(nn.Module):
-    def __init__(self, num_channels):
+    def __init__(self, num_channels, device):
         super(StylizationNoiseNetwork, self).__init__()
 
-        self.B1 = torch.empty((1, num_channels[0], 1, 1)).normal_(0, 0.02)
+        self.B1 = torch.empty(1, num_channels[0], 1, 1, device=device).normal_(0, 0.02)
         self.B1.requires_grad_(True)
 
-        self.B2 = torch.empty((1, num_channels[1], 1, 1)).normal_(0, 0.02)
+        self.B2 = torch.empty(1, num_channels[1], 1, 1, device=device).normal_(0, 0.02)
         self.B2.requires_grad_(True)
 
-        self.B3 = torch.empty((1, num_channels[2], 1, 1)).normal_(0, 0.02)
+        self.B3 = torch.empty(1, num_channels[2], 1, 1, device=device).normal_(0, 0.02)
         self.B3.requires_grad_(True)
 
-        self.B4 = torch.empty((1, num_channels[3], 1, 1)).normal_(0, 0.02)
+        self.B4 = torch.empty(1, num_channels[3], 1, 1, device=device).normal_(0, 0.02)
         self.B4.requires_grad_(True)
 
-        self.B5 = torch.empty((1, num_channels[4], 1, 1)).normal_(0, 0.02)
+        self.B5 = torch.empty(1, num_channels[4], 1, 1, device=device).normal_(0, 0.02)
         self.B5.requires_grad_(True)
 
-        self.B6 = torch.empty((1, num_channels[5], 1, 1)).normal_(0, 0.02)
+        self.B6 = torch.empty(1, num_channels[5], 1, 1, device=device).normal_(0, 0.02)
         self.B6.requires_grad_(True)
 
 
