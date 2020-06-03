@@ -6,7 +6,7 @@ import torchvision
 class BasicDownsamplingConBlock(nn.Module):
     def __init__(self, inc, nc):
         super(BasicDownsamplingConBlock, self).__init__()
-        self.conv = nn.Conv2d(inc, nc, kernel_size=3, stride=2, padding=1)
+        self.conv = nn.utils.spectral_norm(nn.Conv2d(inc, nc, kernel_size=3, stride=2, padding=1))
         self.norm = nn.InstanceNorm2d(nc)
         self.leaky = nn.LeakyReLU(0.2, inplace=True)
 
