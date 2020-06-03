@@ -111,6 +111,7 @@ class GauGANUnetStylizationGenerator(nn.Module):
         self.initial_image_size = initial_image_size
         self.latent_dim = latent_dim
         self.skip_dim = skip_dim
+        self.device = device
         self.starting_noise = torch.empty(1, latent_dim, 1, 1, device=device).normal_(0, 0.02)
         self.starting_noise.requires_grad_(True)
 
@@ -141,12 +142,12 @@ class GauGANUnetStylizationGenerator(nn.Module):
 
     def forward(self, style_vec, mask, skips):
         style_code = self.mapping_net(style_vec)
-        style_noise = self.noise_net([torch.randn(style_code.shape[0], self.latent_dim * 4 + self.skip_dim, self.initial_image_size, self.initial_image_size),
-                                      torch.randn(style_code.shape[0], self.latent_dim * 4 + self.skip_dim, self.initial_image_size*2, self.initial_image_size*2),
-                                      torch.randn(style_code.shape[0], self.latent_dim * 4 + self.skip_dim, self.initial_image_size*4, self.initial_image_size*4),
-                                      torch.randn(style_code.shape[0], self.latent_dim * 4 + self.skip_dim, self.initial_image_size*8, self.initial_image_size*8),
-                                      torch.randn(style_code.shape[0], self.latent_dim * 2 + self.skip_dim, self.initial_image_size*16, self.initial_image_size*16),
-                                      torch.randn(style_code.shape[0], self.latent_dim + self.skip_dim, self.initial_image_size*32, self.initial_image_size*32)])
+        style_noise = self.noise_net([torch.randn(style_code.shape[0], self.latent_dim * 4 + self.skip_dim, self.initial_image_size, self.initial_image_size, device=self.device),
+                                      torch.randn(style_code.shape[0], self.latent_dim * 4 + self.skip_dim, self.initial_image_size*2, self.initial_image_size*2, device=self.device),
+                                      torch.randn(style_code.shape[0], self.latent_dim * 4 + self.skip_dim, self.initial_image_size*4, self.initial_image_size*4, device=self.device),
+                                      torch.randn(style_code.shape[0], self.latent_dim * 4 + self.skip_dim, self.initial_image_size*8, self.initial_image_size*8, device=self.device),
+                                      torch.randn(style_code.shape[0], self.latent_dim * 2 + self.skip_dim, self.initial_image_size*16, self.initial_image_size*16, device=self.device),
+                                      torch.randn(style_code.shape[0], self.latent_dim + self.skip_dim, self.initial_image_size*32, self.initial_image_size*32, device=self.device)])
 
         x = self.starting_noise.repeat(style_vec.shape[0], 1, 1, 1)
         x = self.linear(x)
