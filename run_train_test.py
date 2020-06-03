@@ -165,8 +165,8 @@ def train():
             ## Train with all-real batch
             netD.zero_grad()
             real_image, mask, masked_image, loss_mask = data[0].to(device), data[1].to(device), data[2].to(device), data[3].to(device)
-            jitter_real = torch.empty_like(real_image).uniform_(-0.1 * (0.99 ** epoch), 0.1 * (0.99 ** epoch))
-            jitter_fake = torch.empty_like(real_image).uniform_(-0.1 * (0.99 ** epoch), 0.1 * (0.99 ** epoch))
+            jitter_real = torch.empty_like(real_image).uniform_(-0.05 * (0.99 ** epoch), 0.05 * (0.99 ** epoch))
+            jitter_fake = torch.empty_like(real_image).uniform_(-0.05 * (0.99 ** epoch), 0.05 * (0.99 ** epoch))
             real_preds, real_feats = netD(torch.clamp(real_image + jitter_real, -1.0, 1.0), mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)

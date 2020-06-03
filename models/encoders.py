@@ -6,7 +6,7 @@ import torchvision
 class BasicDownsamplingConBlock(nn.Module):
     def __init__(self, inc, nc):
         super(BasicDownsamplingConBlock, self).__init__()
-        self.conv = nn.Conv2d(inc, nc, kernel_size=3, stride=2, padding=1)
+        self.conv = nn.utils.spectral_norm(nn.Conv2d(inc, nc, kernel_size=3, stride=2, padding=1))
         self.norm = nn.InstanceNorm2d(nc)
         self.leaky = nn.LeakyReLU(0.2, inplace=True)
 
@@ -36,7 +36,7 @@ class BasicEncoder(nn.Module):
         x = torch.reshape(x, (-1, 8192))
         mu = self.mu_fc(x)
         sigma = self.sigma_fc(x)
-        std = sigma.exp()
+        std = torch.exp(0.5 * sigma)
         eps = std.data.new(std.size()).normal_()
         return eps.mul(std).add(mu), mu, sigma
 
@@ -77,8 +77,8 @@ class UnetEncoder(nn.Module):
         x = torch.reshape(x, (-1, 8192//(self.rs**2)))
         mu = self.mu_fc(x)
         sigma = self.sigma_fc(x)
-        std = sigma.exp()
-        eps = std.data.new(std.size()).normal_()
+        std = torch.exp(0.5*sigma)
+        eps = torch.randn_like(std)
         return eps.mul(std).add(mu), mu, sigma, skips
 
 
