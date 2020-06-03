@@ -10,6 +10,7 @@ class AdaIN(nn.Module):
 
     def forward(self, x, a):
         x = torch.div(torch.sub(x, torch.mean(torch.mean(x, dim=2, keepdim=True), dim=3, keepdim=True)), torch.std(torch.std(x, dim=2, keepdim=True), dim=3, keepdim=True))
+        print(a.shape)
         mu = self.mu_fc(a).unsqueeze(2).unsqueeze(3)
         sigma = self.sigma_fc(a).exp().unsqueeze(2).unsqueeze(3)
         print(x.shape, mu.shape)
