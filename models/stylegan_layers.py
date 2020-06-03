@@ -30,10 +30,18 @@ class StylizationNoiseNetwork(nn.Module):
         self.B4 = torch.empty((1, num_channels[3], 1, 1)).normal_(0, 0.02)
         self.B4.requires_grad_(True)
 
+        self.B5 = torch.empty((1, num_channels[4], 1, 1)).normal_(0, 0.02)
+        self.B5.requires_grad_(True)
+
+        self.B6 = torch.empty((1, num_channels[5], 1, 1)).normal_(0, 0.02)
+        self.B6.requires_grad_(True)
+
 
     def forward(self, x):
         scaled_noise_1 = torch.mul(x[0], self.B1)
         scaled_noise_2 = torch.mul(x[1], self.B2)
         scaled_noise_3 = torch.mul(x[2], self.B3)
         scaled_noise_4 = torch.mul(x[3], self.B4)
-        return scaled_noise_1, scaled_noise_2, scaled_noise_3, scaled_noise_4
+        scaled_noise_5 = torch.mul(x[3], self.B5)
+        scaled_noise_6 = torch.mul(x[3], self.B6)
+        return scaled_noise_1, scaled_noise_2, scaled_noise_3, scaled_noise_4, scaled_noise_5, scaled_noise_6

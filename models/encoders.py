@@ -190,35 +190,44 @@ class Vgg19Full(torch.nn.Module):
 
 
 class StyleEncoder(nn.Module):
-    def __init__(self, latent_dim, skip_dim):
+    def __init__(self, latent_dim, skip_dim, rs):
         super(StyleEncoder, self).__init__()
+        self.rs = rs
         self.conv_1 = BasicDownsamplingConBlock(3, 64)
+        self.fc_1 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(64, skip_dim, kernel_size=1)), nn.LeakyReLU(0.2, inplace=True))
         self.conv_2 = BasicDownsamplingConBlock(64, 128)
+        self.fc_2 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(128, skip_dim, kernel_size=1)), nn.LeakyReLU(0.2, inplace=True))
         self.conv_3 = BasicDownsamplingConBlock(128, 256)
-        self.fc_3 = nn.Conv2d(256, skip_dim, kernel_size=1)
+        self.fc_3 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(256, skip_dim, kernel_size=1)), nn.LeakyReLU(0.2, inplace=True))
         self.conv_4 = BasicDownsamplingConBlock(256, 512)
-        self.fc_4= nn.Conv2d(512, skip_dim, kernel_size=1)
+        self.fc_4 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1)), nn.LeakyReLU(0.2, inplace=True))
         self.conv_5 = BasicDownsamplingConBlock(512, 512)
-        self.fc_5 = nn.Conv2d(512, skip_dim, kernel_size=1)
+        self.fc_5 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1)), nn.LeakyReLU(0.2, inplace=True))
         self.conv_6 = BasicDownsamplingConBlock(512, 512)
-        self.fc_6 = nn.Conv2d(512, skip_dim, kernel_size=1)
-        self.fc = nn.Linear(8192, latent_dim)
+        self.fc_6 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1)), nn.LeakyReLU(0.2, inplace=True))
+        self.fc = nn.Linear(8192//(rs**2), latent_dim)
 
-
-
-    def forward(self, x):
+    def forward(self, x, need_skips=True):
         skips = []
         x = self.conv_1(x)
+        if need_skips:
+            skips.append(self.fc_1(x))
         x = self.conv_2(x)
+        if need_skips:
+            skips.append(self.fc_2(x))
         x = self.conv_3(x)
-        skips.append(self.fc_3(x))
+        if need_skips:
+            skips.append(self.fc_3(x))
         x = self.conv_4(x)
-        skips.append(self.fc_4(x))
+        if need_skips:
+            skips.append(self.fc_4(x))
         x = self.conv_5(x)
-        skips.append(self.fc_5(x))
+        if need_skips:
+            skips.append(self.fc_5(x))
         x = self.conv_6(x)
-        skips.append(self.fc_6(x))
-        x = torch.reshape(x, (-1, 8192))
+        if need_skips:
+            skips.append(self.fc_6(x))
+        x = torch.reshape(x, (-1, 8192//(self.rs**2)))
         x = self.fc(x)
         return x, skips
 

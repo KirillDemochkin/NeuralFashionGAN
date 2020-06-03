@@ -107,7 +107,7 @@ fixed_test_images = test_batch[2].to(device)
 fixed_test_masks = test_batch[1].to(device)
 fixed_test_real_images = test_batch[0].to(device)
 
-_ = vutils.save_image(fixed_test_images.cpu().data[:16], '!test.png', normalize=True)
+_ = vutils.save_image(fixed_test_real_images.cpu().data[:16], '!test.png', normalize=True)
 
 ##MODE
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
@@ -116,13 +116,13 @@ netD.apply(weights_init)
 netG = GauGANUnetStylizationGenerator(args.mask_channels, args.encoder_latent_dim, 2, args.unet_ch).to(device)
 netG.apply(weights_init)
 
-netS = StyleEncoder(args.encoder_latent_dim,args.unet_ch).to(device)
+netS = StyleEncoder(args.encoder_latent_dim, args.unet_ch, 2).to(device)
 netS.apply(weights_init)
 
 vgg = Vgg19Full().to(device)
 vgg.eval()
 
-writer, experiment_name, best_model_path = setup_experiment("DeepFashionBaseline", logdir=os.path.join(args.root_path, "tb"))
+writer, experiment_name, best_model_path = setup_experiment("DeepFashionStyleGAN", logdir=os.path.join(args.root_path, "tb"))
 print(f"Experiment name: {experiment_name}")
 sys.stdout.flush()
 
@@ -151,7 +151,6 @@ def train():
     num_epochs = args.max_epoch
     #img_list = []
     iters = 0
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print("Starting Training Loop...")
     sys.stdout.flush()
     for epoch in range(num_epochs):
@@ -171,7 +170,7 @@ def train():
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
             _, skips = netS(masked_image)
-            embed, _ = netS(real_image)
+            embed, _ = netS(real_image, False)
             fake = netG(embed, mask, skips)
             fake_preds, fake_feats = netD(fake.detach(), mask)
             errD = 0.0
@@ -188,8 +187,8 @@ def train():
             ###########################
             netG.zero_grad()
             netS.zero_grad()
-            l1 = losses.masked_l1(fake, masked_image, loss_mask) * args.cycle_lambda
-            l1.backward(retain_graph=True)
+            #l1 = losses.masked_l1(fake, masked_image, loss_mask) * args.cycle_lambda
+            #l1.backward(retain_graph=True)
             fake_vgg_f = vgg(fake)
             real_vgg_f = vgg(real_image)
             errG_p = 0.0
@@ -205,7 +204,7 @@ def train():
             for ff, rf in zip(fake_feats, real_feats):
                 errG_fm += losses.perceptual_loss(ff, rf.detach(), args.fm_lambda)
             errG_fm.backward()
-            errG = errG_hinge.item() + errG_fm.item() + errG_p.item() + l1.item()
+            errG = errG_hinge.item() + errG_fm.item() + errG_p.item() #+ l1.item()
 
             optimizerG.step()
             optimizerE.step()
@@ -220,7 +219,7 @@ def train():
                   netG.eval()
                   netS.eval()
                   _, test_skips = netS(fixed_test_images)
-                  test_embed, _ = netS(fixed_test_real_images)
+                  test_embed, _ = netS(fixed_test_real_images, False)
                   test_generated = netG(test_embed, fixed_test_masks, test_skips).detach().cpu()
                   netG.train()
                   netS.train()
