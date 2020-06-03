@@ -21,7 +21,7 @@ class CocoDataset(Dataset):
 
         self.examples = []
 
-        for file_name in images_files[:500]:
+        for file_name in images_files:
             image_id = file_name.split('.jpg')[0]
             image_path = self.images_dir + file_name
             mask_path = self.masks_dir + image_id + ".png"
