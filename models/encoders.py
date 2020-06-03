@@ -37,7 +37,7 @@ class BasicEncoder(nn.Module):
         x = torch.reshape(x, (-1, 8192//(self.rs**2)))
         mu = self.mu_fc(x)
         sigma = self.sigma_fc(x)
-        std = sigma.exp()
+        std = torch.exp(0.5 * sigma)
         eps = std.data.new(std.size()).normal_()
         return eps.mul(std).add(mu), mu, sigma
 

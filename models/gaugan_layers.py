@@ -16,21 +16,21 @@ class SPADE(nn.Module):
         mask = nn.functional.interpolate(mask, scale_factor=self.scale_factor)
         conditional_features = self.shared_conv(mask)
         mu = self.mu_conv(conditional_features)
-        sigma = self.sigma_conv(conditional_features).exp()
-        return (self.bn(x) * sigma) + mu
+        sigma = self.sigma_conv(conditional_features)
+        return self.bn(x) * (1 + sigma) + mu
 
 
 class SPADE_ResBlock(nn.Module):
     def __init__(self, scale_factor, in_filters, n_filters , mask_channels):
         super(SPADE_ResBlock, self).__init__()
         self.spade_1 = SPADE(scale_factor, in_filters, mask_channels)
-        self.relu_1 = nn.ReLU(inplace=True)
+        self.relu_1 = nn.LeakyReLU(0.2, inplace=True)
         self.conv_1 = nn.utils.spectral_norm(nn.Conv2d(in_filters, n_filters, kernel_size=3, padding=1))
         self.spade_2 = SPADE(scale_factor, n_filters, mask_channels)
-        self.relu_2 = nn.ReLU(inplace=True)
+        self.relu_2 = nn.LeakyReLU(0.2, inplace=True)
         self.conv_2 = nn.utils.spectral_norm(nn.Conv2d(n_filters, n_filters, kernel_size=3, padding=1))
         self.spade_skip = SPADE(scale_factor, in_filters, mask_channels)
-        self.relu_skip = nn.ReLU(inplace=True)
+        self.relu_skip = nn.LeakyReLU(0.2, inplace=True)
         self.conv_skip = nn.utils.spectral_norm(nn.Conv2d(in_filters, n_filters, kernel_size=3, padding=1))
 
     def forward(self, x, mask):
