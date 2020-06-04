@@ -9,7 +9,8 @@ class AdaIN(nn.Module):
         self.sigma_fc = nn.Linear(latent_size, num_ch)
 
     def forward(self, x, a):
-        x = torch.div(torch.sub(x, torch.mean(torch.mean(x, dim=2, keepdim=True), dim=3, keepdim=True)), torch.std(torch.std(x + 1e-6, dim=2, keepdim=True) + 1e-6, dim=3, keepdim=True) + 1e-6)
+        stab = torch.zeros_like(x).uniform_(-1e-5, 1e-5)
+        x = torch.div(torch.sub(x, torch.mean(torch.mean(x, dim=2, keepdim=True), dim=3, keepdim=True)), torch.std(torch.std(x + stab, dim=2, keepdim=True) + stab, dim=3, keepdim=True) + 1e-6)
         mu = self.mu_fc(a).unsqueeze(2).unsqueeze(3)
         sigma = torch.exp(0.5*self.sigma_fc(a).unsqueeze(2).unsqueeze(3))
         return x * sigma + mu
@@ -19,22 +20,22 @@ class StylizationNoiseNetwork(nn.Module):
     def __init__(self, num_channels, device):
         super(StylizationNoiseNetwork, self).__init__()
 
-        self.B1 = torch.empty(1, num_channels[0], 1, 1, device=device).normal_(0, 0.02)
+        self.B1 = torch.empty(1, num_channels[0], 1, 1, device=device).normal_(0, 0.1)
         self.B1.requires_grad_(True)
 
-        self.B2 = torch.empty(1, num_channels[1], 1, 1, device=device).normal_(0, 0.02)
+        self.B2 = torch.empty(1, num_channels[1], 1, 1, device=device).normal_(0, 0.1)
         self.B2.requires_grad_(True)
 
-        self.B3 = torch.empty(1, num_channels[2], 1, 1, device=device).normal_(0, 0.02)
+        self.B3 = torch.empty(1, num_channels[2], 1, 1, device=device).normal_(0, 0.1)
         self.B3.requires_grad_(True)
 
-        self.B4 = torch.empty(1, num_channels[3], 1, 1, device=device).normal_(0, 0.02)
+        self.B4 = torch.empty(1, num_channels[3], 1, 1, device=device).normal_(0, 0.1)
         self.B4.requires_grad_(True)
 
-        self.B5 = torch.empty(1, num_channels[4], 1, 1, device=device).normal_(0, 0.02)
+        self.B5 = torch.empty(1, num_channels[4], 1, 1, device=device).normal_(0, 0.1)
         self.B5.requires_grad_(True)
 
-        self.B6 = torch.empty(1, num_channels[5], 1, 1, device=device).normal_(0, 0.02)
+        self.B6 = torch.empty(1, num_channels[5], 1, 1, device=device).normal_(0, 0.1)
         self.B6.requires_grad_(True)
 
 

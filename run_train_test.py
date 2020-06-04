@@ -46,7 +46,7 @@ parser.add_argument('--num_workers', default=3,
 parser.add_argument('--cuda', default=True,
                     type=bool, help='Use cuda to train model')
 parser.add_argument('--lr', '--learning-rate',
-                    default=0.00001, type=float, help='initial learning rate')
+                    default=0.0001, type=float, help='initial learning rate')
 parser.add_argument('-epoch', '--max_epoch', default=200,
                     type=int, help='max epoch for training')
 parser.add_argument('--save_folder', default='img/',

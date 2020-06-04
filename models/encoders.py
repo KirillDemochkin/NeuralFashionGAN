@@ -45,25 +45,26 @@ class MappingNetwork(nn.Module):
     def __init__(self, latent_dim):
         super(MappingNetwork, self).__init__()
         self.net = nn.Sequential(nn.Linear(latent_dim, latent_dim),
-                                 nn.ReLU(inplace=True),
+                                 nn.LeakyReLU(0.2, inplace=True),
                                  nn.Linear(latent_dim, latent_dim),
-                                 nn.ReLU(inplace=True),
+                                 nn.LeakyReLU(0.2, inplace=True),
                                  nn.Linear(latent_dim, latent_dim),
-                                 nn.ReLU(inplace=True),
+                                 nn.LeakyReLU(0.2, inplace=True),
                                  nn.Linear(latent_dim, latent_dim),
-                                 nn.ReLU(inplace=True),
+                                 nn.LeakyReLU(0.2, inplace=True),
                                  nn.Linear(latent_dim, latent_dim),
-                                 nn.ReLU(inplace=True),
+                                 nn.LeakyReLU(0.2, inplace=True),
                                  nn.Linear(latent_dim, latent_dim),
-                                 nn.ReLU(inplace=True),
+                                 nn.LeakyReLU(0.2, inplace=True),
                                  nn.Linear(latent_dim, latent_dim),
-                                 nn.ReLU(inplace=True),
+                                 nn.LeakyReLU(0.2, inplace=True),
                                  nn.Linear(latent_dim, latent_dim),
-                                 nn.ReLU(inplace=True)
+                                 nn.LeakyReLU(0.2, inplace=True)
                                  )
 
     def forward(self, x):
-        x = x / (torch.norm(x + 1e-10, p=2, dim=1, keepdim=True) + 1e-10)
+        stab = torch.zeros_like(x).uniform_(-1e-5, 1e-5)
+        x = x / (torch.norm(x + stab, p=2, dim=1, keepdim=True) + 1e-10)
         return self.net(x)
 
 
@@ -184,7 +185,7 @@ class Vgg19Full(torch.nn.Module):
         h_relu15 = self.slice15(h_relu14)
         h_relu16 = self.slice16(h_relu15)
         res = (h_relu1, h_relu2, h_relu3, h_relu4, h_relu5, h_relu6, h_relu7, h_relu8, h_relu9, h_relu10, h_relu11, h_relu12, h_relu13, h_relu14, h_relu15, h_relu16)
-        return torch.cat([r.view(r.size(0), -1) for r in res], dim=1)
+        return [r.view(r.size(0), -1) for r in res]
 
 
 class StyleEncoder(nn.Module):

@@ -150,8 +150,8 @@ class GauGANUnetStylizationGenerator(nn.Module):
                                       torch.randn(style_code.shape[0], self.latent_dim + self.skip_dim, self.initial_image_size*32, self.initial_image_size*32, device=self.device)])
 
         x = self.starting_noise.repeat(style_vec.shape[0], 1)
-       # x = self.linear(x+torch.zeros_like(x).uniform_(-0.05, 0.05))
-        x = self.linear(x)
+        x = self.linear(x+torch.zeros_like(x).uniform_(-0.05, 0.05))
+        #x = self.linear(x)
         x = torch.reshape(x, (-1, self.latent_dim*4, self.initial_image_size, self.initial_image_size))
         x = self.upsample_1(self.spd_blck_1(torch.cat((x, skips[5]), dim=1) + style_noise[0], mask, style_code))
         x = self.upsample_2(self.spd_blck_2(torch.cat((x, skips[4]), dim=1) + style_noise[1], mask, style_code))
