@@ -10,7 +10,7 @@ class AdaIN(nn.Module):
 
     def forward(self, x, a):
         mean = torch.mean(x, dim=(2, 3), keepdim=True)
-        std = (torch.var(x, dim=(2, 3), keepdim=True) + 1e-6).sqrt()
+        std = (torch.var(x.view(x.shape[0], x.shape[1], -1), dim=-1, keepdim=True) + 1e-6).sqrt().unsqueeze(-1)
         x = (x - mean) / (std + 1e-6)
         mu = self.mu_fc(a).unsqueeze(2).unsqueeze(3)
         sigma = self.sigma_fc(a).unsqueeze(2).unsqueeze(3)
