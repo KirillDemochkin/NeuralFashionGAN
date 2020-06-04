@@ -9,11 +9,12 @@ class AdaIN(nn.Module):
         self.sigma_fc = nn.Linear(latent_size, num_ch)
 
     def forward(self, x, a):
-        stab = torch.zeros_like(x).uniform_(-1e-5, 1e-5)
-        x = torch.div(torch.sub(x, torch.mean(torch.mean(x, dim=2, keepdim=True), dim=3, keepdim=True)), torch.std(torch.std(x + stab, dim=2, keepdim=True) + stab, dim=3, keepdim=True) + 1e-6)
+        mean = torch.mean(x, dim=(2, 3), keepdim=True)
+        std = (torch.var(x, dim=(2, 3), keepdim=True) + 1e-6).sqrt()
+        x = (x - mean) / (std + 1e-6)
         mu = self.mu_fc(a).unsqueeze(2).unsqueeze(3)
-        sigma = torch.exp(0.5*self.sigma_fc(a).unsqueeze(2).unsqueeze(3))
-        return x * sigma + mu
+        sigma = self.sigma_fc(a).unsqueeze(2).unsqueeze(3)
+        return x * (1 + sigma) + mu
 
 
 class StylizationNoiseNetwork(nn.Module):

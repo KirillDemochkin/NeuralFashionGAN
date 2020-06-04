@@ -63,8 +63,7 @@ class MappingNetwork(nn.Module):
                                  )
 
     def forward(self, x):
-        stab = torch.zeros_like(x).uniform_(-1e-5, 1e-5)
-        x = x / (torch.norm(x + stab, p=2, dim=1, keepdim=True) + 1e-10)
+        x = x / (torch.norm(x + 1e-6, p=2, dim=1, keepdim=True) + 1e-6)
         return self.net(x)
 
 
