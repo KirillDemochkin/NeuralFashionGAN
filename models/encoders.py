@@ -6,7 +6,7 @@ import torchvision
 class BasicDownsamplingConBlock(nn.Module):
     def __init__(self, inc, nc):
         super(BasicDownsamplingConBlock, self).__init__()
-        self.conv = nn.utils.spectral_norm(nn.Conv2d(inc, nc, kernel_size=4, stride=2, padding=1), eps=1e-6)
+        self.conv = nn.utils.spectral_norm(nn.Conv2d(inc, nc, kernel_size=4, stride=2, padding=1), eps=1e-8)
         self.norm = nn.InstanceNorm2d(nc)
         self.leaky = nn.LeakyReLU(0.2, inplace=True)
 
@@ -65,7 +65,7 @@ class MappingNetwork(nn.Module):
         self.sigma_fc = nn.Linear(latent_dim, latent_dim)
 
     def forward(self, x):
-        x = x / (torch.norm(x + 1e-6, p=2, dim=1, keepdim=True) + 1e-6)
+        x = x / (torch.norm(x + 1e-8, p=2, dim=1, keepdim=True) + 1e-8)
         x = self.net(x)
         mu = self.mu_fc(x)
         sigma = self.sigma_fc(x)
