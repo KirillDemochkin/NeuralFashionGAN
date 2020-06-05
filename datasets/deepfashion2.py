@@ -16,7 +16,7 @@ def ann_to_mask(segm, h, w):
 
 
 class DeepFashion2Dataset(Dataset):
-    def __init__(self, root, num_classes=13, transform=None, return_masked_image=False):
+    def __init__(self, root, num_classes=13, transform=None, return_masked_image=False, noise = False):
         super().__init__()
 
         self.image_folder = join(root, 'image')
@@ -25,6 +25,7 @@ class DeepFashion2Dataset(Dataset):
         self.num_classes = num_classes
         self.transform = transform
         self.return_masked_image = return_masked_image
+        self.noise = noise
 
     def __getitem__(self, idx):
         name = f'{idx + 1:06d}'
@@ -58,6 +59,10 @@ class DeepFashion2Dataset(Dataset):
         if self.return_masked_image:
             masked_image = image.clone()
             masked_image[:, full_mask.sum(dim=0) > 0] = 1.
+            if self.noise:
+                noise = torch.rand_like(masked_image)
+                noise[:, full_mask.sum(dim=0) <= 0] = 0.
+                masked_image += noise
             loss_mask = torch.ones_like(masked_image)
             loss_mask[:, full_mask.sum(dim=0) > 0] = 0.
             return image, full_mask, masked_image, loss_mask
