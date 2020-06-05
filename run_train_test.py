@@ -119,8 +119,8 @@ netG.apply(weights_init)
 netS1 = StyleEncoder(args.encoder_latent_dim, args.unet_ch, 2).to(device)
 netS1.apply(weights_init)
 
-netS2 = StyleEncoder(args.encoder_latent_dim, args.unet_ch, 2, need_skips=False).to(device)
-netS2.apply(weights_init)
+#netS2 = StyleEncoder(args.encoder_latent_dim, args.unet_ch, 2, need_skips=False).to(device)
+#netS2.apply(weights_init)
 
 netM = MappingNetwork(args.encoder_latent_dim).to(device)
 netM.apply(weights_init)
@@ -142,7 +142,7 @@ if args.load:
     netG.load(resume_netG_path)
     netD.load(resume_netD_path)
     netS1.load(resume_netS_path)
-    netS2.load_state_dict(resume_netS_path)
+    #netS2.load_state_dict(resume_netS_path)
 
 optimizerD = optim.Adam(netD.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
                         weight_decay=args.weight_decay)
@@ -150,8 +150,8 @@ optimizerG = optim.Adam(netG.parameters(), lr=args.lr, betas=(args.betas, args.m
                         weight_decay=args.weight_decay)
 optimizerS1 = optim.Adam(netS1.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
                         weight_decay=args.weight_decay)
-optimizerS2 = optim.Adam(netS2.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
-                        weight_decay=args.weight_decay)
+#optimizerS2 = optim.Adam(netS2.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
+                       # weight_decay=args.weight_decay)
 optimizerM = optim.Adam(netM.parameters(), lr=args.lr*0.01, betas=(args.betas, args.momentum),
                         weight_decay=args.weight_decay)
 
@@ -185,7 +185,8 @@ def train():
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
 
             _, skips = netS1(masked_image)
-            embed, _ = netS2(real_image, False)
+            embed, _ = netS1(real_image, False)
+            #embed, _ = netS2(real_image, False)
             style_code, mu, sigma = netM(embed)
             fake = netG(style_code, mask, skips)
             fake_preds, fake_feats = netD(torch.clamp(fake.detach() + jitter_fake, -1, 1), mask)
@@ -204,7 +205,7 @@ def train():
             ###########################
             optimizerM.zero_grad()
             optimizerS1.zero_grad()
-            optimizerS2.zero_grad()
+            #optimizerS2.zero_grad()
             optimizerG.zero_grad()
             #l1 = losses.masked_l1(fake, masked_image, loss_mask) * args.cycle_lambda
             #l1.backward(retain_graph=True)
@@ -229,7 +230,7 @@ def train():
 
             optimizerG.step()
             optimizerS1.step()
-            optimizerS2.step()
+            #optimizerS2.step()
             optimizerM.step()
             if writer is not None:
                 writer.add_scalar(f"loss_G", errG, global_i)
@@ -241,15 +242,16 @@ def train():
                with torch.no_grad():
                     netG.eval()
                     netS1.eval()
-                    netS2.eval()
+                    #netS2.eval()
                     netM.eval()
                     _, test_skips = netS1(fixed_test_images)
-                    test_embed, _ = netS2(fixed_test_real_images, False)
+                    test_embed, _ = netS1(fixed_test_real_images, False)
+                    #test_embed, _ = netS2(fixed_test_real_images, False)
                     style_code, _, _ = netM(test_embed)
                     test_generated = netG(style_code, fixed_test_masks, test_skips).detach().cpu()
                     netG.train()
                     netS1.train()
-                    netS2.train()
+                    #netS2.train()
                     netM.train()
                tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch),
                                             normalize=True, save=False)
@@ -265,15 +267,16 @@ def train():
             with torch.no_grad():
                 netG.eval()
                 netS1.eval()
-                netS2.eval()
+                #netS2.eval()
                 netM.eval()
                 _, test_skips = netS1(fixed_test_images)
-                test_embed, _ = netS2(fixed_test_real_images, False)
+                test_embed, _ = netS1(fixed_test_real_images, False)
+                #test_embed, _ = netS2(fixed_test_real_images, False)
                 style_code, _, _ = netM(test_embed)
                 test_generated = netG(style_code, fixed_test_masks, test_skips).detach().cpu()
                 netG.train()
                 netS1.train()
-                netS2.train()
+                #netS2.train()
                 netM.train()
             # img_list.append(fake.data.numpy())
 
@@ -284,7 +287,7 @@ def train():
             torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG' + best_model_path))
             torch.save(netD.state_dict(), os.path.join(args.root_path, 'NetD' + best_model_path))
             torch.save(netS1.state_dict(), os.path.join(args.root_path, 'NetS2' + best_model_path))
-            torch.save(netS2.state_dict(), os.path.join(args.root_path, 'NetS1' + best_model_path))
+            #torch.save(netS2.state_dict(), os.path.join(args.root_path, 'NetS1' + best_model_path))
             torch.save(netM.state_dict(), os.path.join(args.root_path, 'NetM' + best_model_path))
             # plt.imsave(os.path.join(
             # './{}/'.format(test_save_dir) + 'img{}.png'.format(datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))),

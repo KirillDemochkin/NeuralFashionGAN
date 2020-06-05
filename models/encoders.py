@@ -216,8 +216,9 @@ class StyleEncoder(nn.Module):
         self.conv_6 = BasicDownsamplingConBlock(512, 512)
         if need_skips:
             self.fc_6 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1), eps=1e-8), nn.LeakyReLU(0.2, inplace=True))
-        if not need_skips:
-            self.fc = nn.Linear(8192//(rs**2), latent_dim)
+        #if not need_skips:
+            #self.fc = nn.Linear(8192//(rs**2), latent_dim)
+        self.fc = nn.Linear(8192//(rs**2), latent_dim)
 
     def forward(self, x, need_skips=True):
         skips = []
@@ -239,8 +240,10 @@ class StyleEncoder(nn.Module):
         x = self.conv_6(x)
         if need_skips:
             skips.append(self.fc_6(x))
-        if not need_skips:
-            x = torch.reshape(x, (-1, 8192//(self.rs**2)))
-            x = self.fc(x)
+        #if not need_skips:
+            #x = torch.reshape(x, (-1, 8192//(self.rs**2)))
+            #x = self.fc(x)
+        x = torch.reshape(x, (-1, 8192//(self.rs**2)))
+        x = self.fc(x)
         return x, skips
 
