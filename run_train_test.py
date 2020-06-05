@@ -32,8 +32,8 @@ from albumentations import (
 from albumentations.pytorch import ToTensorV2
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_root', help='path to data', type=str, default= '/home/kdemochkin/NeuralFashionGAN/data/')
-parser.add_argument('--root_path', help='path', type=str, default='/home/kdemochkin/NeuralFashionGAN/')
+parser.add_argument('--data_root', help='path to data', type=str, default= 'C:/Users/Polinka/PycharmProjects/Deepfashion')
+parser.add_argument('--root_path', help='path', type=str, default='C:/Users/Polinka/PycharmProjects')
 parser.add_argument('--basenetG', help='pretrained generator model')
 parser.add_argument('--basenetD', help='pretrained discriminator model')
 parser.add_argument('--basenetS', help='pretrained encoder model')
@@ -62,6 +62,7 @@ parser.add_argument('--betas', default=0.5,
 parser.add_argument('--fm_lambda', default=10, type=float)
 parser.add_argument('--cycle_lambda', default=5, type=float)
 parser.add_argument('--kl_lambda', default=0.05, type=float)
+parser.add_argument('--G_orth', default=1e-4, type=float)
 parser.add_argument('--encoder_latent_dim', default=256, type=float)
 parser.add_argument('--unet_ch', default=4, type=float)
 parser.add_argument('--mask_channels', default=13, type=float)
@@ -94,7 +95,7 @@ transform = Compose([Resize(resize_height, resize_width),
                     ToTensorV2()])
 
 
-train_dataset = DeepFashion2Dataset(os.path.join(args.data_root, 'validation'),  transform=transform, return_masked_image=True)
+train_dataset = DeepFashion2Dataset(os.path.join(args.data_root, 'validation'),  transform=transform, return_masked_image=True, noise = True)
 #val_dataset = DeepFashion2Dataset(os.path.join(args.data_root, 'validation'),  transform=transform, return_masked_image= True )
 
 print('Loading Dataset...')
@@ -108,6 +109,7 @@ fixed_test_masks = test_batch[1].to(device)
 fixed_test_real_images = test_batch[0].to(device)
 
 _ = vutils.save_image(fixed_test_real_images.cpu().data[:16], '!test.png', normalize=True)
+_ = vutils.save_image(fixed_test_images.cpu().data[:16], '!test_noise.png', normalize=True)
 
 ##MODE
 netD = MultiscaleDiscriminator(args.mask_channels + 3).to(device)
@@ -228,6 +230,9 @@ def train():
             errG_fm.backward()
             errG = errG_hinge.item() + errG_fm.item() + errG_p.item() #+ l1.item()
 
+            if args.G_orth > 0.0:
+                losses.ortho(netG, args.G_orth,
+                            blacklist=[param for param in netG.shared.parameters()])
             optimizerG.step()
             optimizerS1.step()
             #optimizerS2.step()
