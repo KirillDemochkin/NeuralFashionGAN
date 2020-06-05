@@ -65,7 +65,7 @@ class MappingNetwork(nn.Module):
         self.sigma_fc = nn.Linear(latent_dim, latent_dim)
 
     def forward(self, x):
-        x = x / (torch.norm(x + 1e-8, p=2, dim=1, keepdim=True) + 1e-8)
+        x = x / (torch.norm(x + 1e-8, p=2, dim=1, keepdim=True).detach() + 1e-8)
         x = self.net(x)
         mu = self.mu_fc(x)
         sigma = self.sigma_fc(x)

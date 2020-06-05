@@ -13,8 +13,8 @@ class AdaIN(nn.Module):
         if noise is not None:
             x = x + noise
         x = self.leaky(x)
-        mean = torch.mean(x, dim=(2, 3), keepdim=True)
-        std = (torch.var(x.view(x.shape[0], x.shape[1], -1), dim=-1, keepdim=True) + 1e-8).sqrt().unsqueeze(-1)
+        mean = torch.mean(x, dim=(2, 3), keepdim=True).detach()
+        std = (torch.var(x.view(x.shape[0], x.shape[1], -1), dim=-1, keepdim=True) + 1e-8).sqrt().unsqueeze(-1).detach()
         x = (x - mean) / (std + 1e-8)
         mu = self.mu_fc(a).unsqueeze(2).unsqueeze(3)
         sigma = self.sigma_fc(a).unsqueeze(2).unsqueeze(3)
