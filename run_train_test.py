@@ -232,7 +232,7 @@ def train():
 
             if args.G_orth > 0.0:
                 losses.ortho(netG, args.G_orth,
-                            blacklist=[param for param in netG.shared.parameters()])
+                            blacklist=[])
             optimizerG.step()
             optimizerS1.step()
             #optimizerS2.step()
@@ -291,8 +291,8 @@ def train():
             # writer.add_image('generated', tim, epoch, dataformats='HWC')
             torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG' + best_model_path))
             torch.save(netD.state_dict(), os.path.join(args.root_path, 'NetD' + best_model_path))
-            torch.save(netS1.state_dict(), os.path.join(args.root_path, 'NetS2' + best_model_path))
-            #torch.save(netS2.state_dict(), os.path.join(args.root_path, 'NetS1' + best_model_path))
+            torch.save(netS1.state_dict(), os.path.join(args.root_path, 'NetS1' + best_model_path))
+            #torch.save(netS2.state_dict(), os.path.join(args.root_path, 'NetS2' + best_model_path))
             torch.save(netM.state_dict(), os.path.join(args.root_path, 'NetM' + best_model_path))
             # plt.imsave(os.path.join(
             # './{}/'.format(test_save_dir) + 'img{}.png'.format(datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))),
