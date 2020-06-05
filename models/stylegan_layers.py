@@ -8,10 +8,11 @@ class AdaIN(nn.Module):
         self.mu_fc = nn.Linear(latent_size, num_ch)
         self.sigma_fc = nn.Linear(latent_size, num_ch)
 
-    def forward(self, x, a):
+    def forward(self, x, a, noise):
+        x = x + noise
         mean = torch.mean(x, dim=(2, 3), keepdim=True)
-        std = (torch.var(x.view(x.shape[0], x.shape[1], -1), dim=-1, keepdim=True) + 1e-6).sqrt().unsqueeze(-1)
-        x = (x - mean) / (std + 1e-6)
+        std = (torch.var(x.view(x.shape[0], x.shape[1], -1), dim=-1, keepdim=True) + 1e-8).sqrt().unsqueeze(-1)
+        x = (x - mean) / (std + 1e-8)
         mu = self.mu_fc(a).unsqueeze(2).unsqueeze(3)
         sigma = self.sigma_fc(a).unsqueeze(2).unsqueeze(3)
         return x * (1 + sigma) + mu
@@ -20,12 +21,12 @@ class AdaIN(nn.Module):
 class StylizationNoiseNetwork(nn.Module):
     def __init__(self, num_channels, device):
         super(StylizationNoiseNetwork, self).__init__()
-        self.B1 = nn.Parameter(data=torch.zeros(1, num_channels[0], 1, 1, device=device).normal_(0, 0.1), requires_grad=True)
-        self.B2 = nn.Parameter(data=torch.empty(1, num_channels[1], 1, 1, device=device).normal_(0, 0.1), requires_grad=True)
-        self.B3 = nn.Parameter(data=torch.empty(1, num_channels[2], 1, 1, device=device).normal_(0, 0.1), requires_grad=True)
-        self.B4 = nn.Parameter(data=torch.empty(1, num_channels[3], 1, 1, device=device).normal_(0, 0.1), requires_grad=True)
-        self.B5 = nn.Parameter(data=torch.empty(1, num_channels[4], 1, 1, device=device).normal_(0, 0.1), requires_grad=True)
-        self.B6 = nn.Parameter(data=torch.empty(1, num_channels[5], 1, 1, device=device).normal_(0, 0.1), requires_grad=True)
+        self.B1 = nn.Parameter(data=torch.zeros(1, num_channels[0], 1, 1, device=device).normal_(0, 1), requires_grad=True)
+        self.B2 = nn.Parameter(data=torch.empty(1, num_channels[1], 1, 1, device=device).normal_(0, 1), requires_grad=True)
+        self.B3 = nn.Parameter(data=torch.empty(1, num_channels[2], 1, 1, device=device).normal_(0, 1), requires_grad=True)
+        self.B4 = nn.Parameter(data=torch.empty(1, num_channels[3], 1, 1, device=device).normal_(0, 1), requires_grad=True)
+        self.B5 = nn.Parameter(data=torch.empty(1, num_channels[4], 1, 1, device=device).normal_(0, 1), requires_grad=True)
+        self.B6 = nn.Parameter(data=torch.empty(1, num_channels[5], 1, 1, device=device).normal_(0, 1), requires_grad=True)
 
 
     def forward(self, x):

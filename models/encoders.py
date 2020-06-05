@@ -200,22 +200,22 @@ class StyleEncoder(nn.Module):
         self.rs = rs
         self.conv_1 = BasicDownsamplingConBlock(3, 64)
         if need_skips:
-            self.fc_1 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(64, skip_dim, kernel_size=1), eps=1e-6), nn.LeakyReLU(0.2, inplace=True))
+            self.fc_1 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(64, skip_dim, kernel_size=1), eps=1e-8), nn.LeakyReLU(0.2, inplace=True))
         self.conv_2 = BasicDownsamplingConBlock(64, 128)
         if need_skips:
-            self.fc_2 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(128, skip_dim, kernel_size=1), eps=1e-6), nn.LeakyReLU(0.2, inplace=True))
+            self.fc_2 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(128, skip_dim, kernel_size=1), eps=1e-8), nn.LeakyReLU(0.2, inplace=True))
         self.conv_3 = BasicDownsamplingConBlock(128, 256)
         if need_skips:
-            self.fc_3 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(256, skip_dim, kernel_size=1), eps=1e-6), nn.LeakyReLU(0.2, inplace=True))
+            self.fc_3 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(256, skip_dim, kernel_size=1), eps=1e-8), nn.LeakyReLU(0.2, inplace=True))
         self.conv_4 = BasicDownsamplingConBlock(256, 512)
         if need_skips:
-            self.fc_4 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1), eps=1e-6), nn.LeakyReLU(0.2, inplace=True))
+            self.fc_4 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1), eps=1e-8), nn.LeakyReLU(0.2, inplace=True))
         self.conv_5 = BasicDownsamplingConBlock(512, 512)
         if need_skips:
-            self.fc_5 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1), eps=1e-6), nn.LeakyReLU(0.2, inplace=True))
+            self.fc_5 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1), eps=1e-8), nn.LeakyReLU(0.2, inplace=True))
         self.conv_6 = BasicDownsamplingConBlock(512, 512)
         if need_skips:
-            self.fc_6 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1), eps=1e-6), nn.LeakyReLU(0.2, inplace=True))
+            self.fc_6 = nn.Sequential(nn.utils.spectral_norm(nn.Conv2d(512, skip_dim, kernel_size=1), eps=1e-8), nn.LeakyReLU(0.2, inplace=True))
         if not need_skips:
             self.fc = nn.Linear(8192//(rs**2), latent_dim)
 
