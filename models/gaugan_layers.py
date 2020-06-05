@@ -75,7 +75,7 @@ class Style_SPADE_ResBlock(nn.Module):
 
     def forward(self, x, mask, style_code, noise):
         out = self.conv_1(self.relu_1(self.spade_1(x, mask, style_code, noise)))
-        out = self.conv_2(self.relu_2(self.spade_2(out, mask, style_code, noise)))
+        out = self.conv_2(self.relu_2(self.spade_2(out, mask, style_code)))
         x = self.conv_skip(self.relu_skip(self.spade_skip(x, mask, style_code, noise)))
         return out + x
 
