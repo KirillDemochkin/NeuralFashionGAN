@@ -16,7 +16,7 @@ from datasets.gaugan_datasets import CocoDataset
 from datasets.deepfashion2 import DeepFashion2Dataset
 from models.gaugan_generators import GauGANUnetGenerator, GauGANUnetStylizationGenerator
 from models.discriminator import MultiscaleDiscriminator
-from models.encoders import UnetEncoder, StyleEncoder, Vgg19Full
+from models.encoders import UnetEncoder, StyleEncoder, Vgg19Full, MappingNetwork
 from utils.weights_init import weights_init
 from utils import losses
 from utils import visualization as vutils
@@ -116,13 +116,19 @@ netD.apply(weights_init)
 netG = GauGANUnetStylizationGenerator(args.mask_channels, args.encoder_latent_dim, 2, args.unet_ch, device).to(device)
 netG.apply(weights_init)
 
-netS = StyleEncoder(args.encoder_latent_dim, args.unet_ch, 2).to(device)
-netS.apply(weights_init)
+netS1 = StyleEncoder(args.encoder_latent_dim, args.unet_ch, 2).to(device)
+netS1.apply(weights_init)
+
+netS2 = StyleEncoder(args.encoder_latent_dim, args.unet_ch, 2, need_skips=False).to(device)
+netS2.apply(weights_init)
+
+netM = MappingNetwork(args.encoder_latent_dim).to(device)
+netM.apply(weights_init)
 
 vgg = Vgg19Full().to(device)
 vgg.eval()
 
-writer, experiment_name, best_model_path = setup_experiment("DeepFashionStyleGAN", logdir=os.path.join(args.root_path, "tb"))
+writer, experiment_name, best_model_path = setup_experiment("DeepFashionStyleGANImproved", logdir=os.path.join(args.root_path, "tb"))
 print(f"Experiment name: {experiment_name}")
 sys.stdout.flush()
 
@@ -135,13 +141,18 @@ if args.load:
     sys.stdout.flush()
     netG.load(resume_netG_path)
     netD.load(resume_netD_path)
-    netS.load(resume_netS_path)
+    netS1.load(resume_netS_path)
+    netS2.load_state_dict(resume_netS_path)
 
 optimizerD = optim.Adam(netD.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
                         weight_decay=args.weight_decay)
 optimizerG = optim.Adam(netG.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
                         weight_decay=args.weight_decay)
-optimizerE = optim.Adam(netS.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
+optimizerS1 = optim.Adam(netS1.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
+                        weight_decay=args.weight_decay)
+optimizerS2 = optim.Adam(netS2.parameters(), lr=args.lr, betas=(args.betas, args.momentum),
+                        weight_decay=args.weight_decay)
+optimizerM = optim.Adam(netM.parameters(), lr=args.lr*0.01, betas=(args.betas, args.momentum),
                         weight_decay=args.weight_decay)
 
 
@@ -164,7 +175,7 @@ def train():
             ###########################
             ## Train with all-real batch
             #with torch.autograd.detect_anomaly():
-            netD.zero_grad()
+            optimizerD.zero_grad()
             real_image, mask, masked_image, loss_mask = data[0].to(device), data[1].to(device), data[2].to(device), data[3].to(device)
             jitter_real = torch.empty_like(real_image, device=device).uniform_(-0.05 * (0.99 ** epoch), 0.05 * (0.99 ** epoch))
             jitter_fake = torch.empty_like(real_image, device=device).uniform_(-0.05 * (0.99 ** epoch), 0.05 * (0.99 ** epoch))
@@ -172,9 +183,11 @@ def train():
             real_preds, real_feats = netD(torch.clamp(real_image + jitter_real, -1, 1), mask)
             ## Train with all-fake batch
             # noise = torch.randn(b_size, nz, 1, 1, device=device)
-            _, skips = netS(masked_image)
-            embed, _ = netS(real_image, False)
-            fake = netG(embed, mask, skips)
+
+            _, skips = netS1(masked_image)
+            embed, _ = netS2(real_image, False)
+            style_code, mu, sigma = netM(embed)
+            fake = netG(style_code, mask, skips)
             fake_preds, fake_feats = netD(torch.clamp(fake.detach() + jitter_fake, -1, 1), mask)
             #fake_preds, fake_feats = netD(fake.detach(), mask)
             errD = 0.0
@@ -189,8 +202,10 @@ def train():
             ############################
             # G network
             ###########################
-            netG.zero_grad()
-            netS.zero_grad()
+            optimizerM.zero_grad()
+            optimizerS1.zero_grad()
+            optimizerS2.zero_grad()
+            optimizerG.zero_grad()
             #l1 = losses.masked_l1(fake, masked_image, loss_mask) * args.cycle_lambda
             #l1.backward(retain_graph=True)
             fake_vgg_f = vgg(fake)
@@ -211,7 +226,9 @@ def train():
             errG = errG_hinge.item() + errG_fm.item() + errG_p.item() #+ l1.item()
 
             optimizerG.step()
-            optimizerE.step()
+            optimizerS1.step()
+            optimizerS2.step()
+            optimizerM.step()
             if writer is not None:
                 writer.add_scalar(f"loss_G", errG, global_i)
             # Output training stats
@@ -220,13 +237,18 @@ def train():
                     % (epoch, num_epochs, i, len(train_loader), errD.item(), errG))
                sys.stdout.flush()
                with torch.no_grad():
-                  netG.eval()
-                  netS.eval()
-                  _, test_skips = netS(fixed_test_images)
-                  test_embed, _ = netS(fixed_test_real_images, False)
-                  test_generated = netG(test_embed, fixed_test_masks, test_skips).detach().cpu()
-                  netG.train()
-                  netS.train()
+                    netG.eval()
+                    netS1.eval()
+                    netS2.eval()
+                    netM.eval()
+                    _, test_skips = netS1(fixed_test_images)
+                    test_embed, _ = netS2(fixed_test_real_images, False)
+                    style_code = netM(test_embed)
+                    test_generated = netG(style_code, fixed_test_masks, test_skips).detach().cpu()
+                    netG.train()
+                    netS1.train()
+                    netS2.train()
+                    netM.train()
                tim = vutils.save_image(test_generated.data[:16], '%s/%d.png' % (test_save_dir, epoch),
                                             normalize=True, save=False)
                writer.add_image('generated', tim, global_i, dataformats='HWC')
@@ -240,12 +262,17 @@ def train():
         if epoch % args.save_frequency == 0:
             with torch.no_grad():
                 netG.eval()
-                netS.eval()
-                _, test_skips = netS(fixed_test_images)
-                test_embed, _ = netS(fixed_test_real_images, False)
-                test_generated = netG(test_embed, fixed_test_masks, test_skips).detach().cpu()
+                netS1.eval()
+                netS2.eval()
+                netM.eval()
+                _, test_skips = netS1(fixed_test_images)
+                test_embed, _ = netS2(fixed_test_real_images, False)
+                style_code = netM(test_embed)
+                test_generated = netG(style_code, fixed_test_masks, test_skips).detach().cpu()
                 netG.train()
-                netS.train()
+                netS1.train()
+                netS2.train()
+                netM.train()
             # img_list.append(fake.data.numpy())
 
             print("Epoch %d - Elapsed time: {:0>2}:{:0>2}:{:05.2f}".format(epoch, int(hours), int(minutes), seconds))
@@ -254,7 +281,9 @@ def train():
             # writer.add_image('generated', tim, epoch, dataformats='HWC')
             torch.save(netG.state_dict(), os.path.join(args.root_path, 'NetG' + best_model_path))
             torch.save(netD.state_dict(), os.path.join(args.root_path, 'NetD' + best_model_path))
-            torch.save(netS.state_dict(), os.path.join(args.root_path, 'NetS' + best_model_path))
+            torch.save(netS1.state_dict(), os.path.join(args.root_path, 'NetS2' + best_model_path))
+            torch.save(netS2.state_dict(), os.path.join(args.root_path, 'NetS1' + best_model_path))
+            torch.save(netM.state_dict(), os.path.join(args.root_path, 'NetM' + best_model_path))
             # plt.imsave(os.path.join(
             # './{}/'.format(test_save_dir) + 'img{}.png'.format(datetime.now().strftime("%d.%m.%Y-%H:%M:%S"))),
             # ((img_list[-1][0] + 1) / 2.0).transpose([1, 2, 0]), cmap='gray', interpolation="none")
