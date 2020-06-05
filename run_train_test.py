@@ -208,6 +208,8 @@ def train():
             optimizerG.zero_grad()
             #l1 = losses.masked_l1(fake, masked_image, loss_mask) * args.cycle_lambda
             #l1.backward(retain_graph=True)
+            dkl = losses.KL_divergence(mu, sigma) * args.kl_lambda
+            dkl.backward(retain_graph=True)
             fake_vgg_f = vgg(fake)
             real_vgg_f = vgg(real_image)
             errG_p = 0.0
@@ -243,7 +245,7 @@ def train():
                     netM.eval()
                     _, test_skips = netS1(fixed_test_images)
                     test_embed, _ = netS2(fixed_test_real_images, False)
-                    style_code = netM(test_embed)
+                    style_code, _, _ = netM(test_embed)
                     test_generated = netG(style_code, fixed_test_masks, test_skips).detach().cpu()
                     netG.train()
                     netS1.train()
@@ -267,7 +269,7 @@ def train():
                 netM.eval()
                 _, test_skips = netS1(fixed_test_images)
                 test_embed, _ = netS2(fixed_test_real_images, False)
-                style_code = netM(test_embed)
+                style_code, _, _ = netM(test_embed)
                 test_generated = netG(style_code, fixed_test_masks, test_skips).detach().cpu()
                 netG.train()
                 netS1.train()
