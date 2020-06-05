@@ -58,8 +58,8 @@ class DeepFashion2Dataset(Dataset):
 
         if self.return_masked_image:
             masked_image = image.clone()
-            average_color = torch.mode(masked_image.view(3, -1), dim=-1)
-            #average_color = torch.mean(masked_image.view(3, -1), dim=-1)
+            #average_color = torch.mode(masked_image.view(3, -1), dim=-1)
+            average_color = torch.mean(masked_image.view(3, -1), dim=-1)
             masked_image[0, full_mask.sum(dim=0) > 0] = average_color[0]
             masked_image[1, full_mask.sum(dim=0) > 0] = average_color[1]
             masked_image[2, full_mask.sum(dim=0) > 0] = average_color[2]
