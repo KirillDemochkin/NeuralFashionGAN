@@ -54,7 +54,7 @@ def generate_images():
     print('...Length of dataset:', len(dataset))
 
     # set device - cpu
-    device = torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     print('...Loading models')
 
@@ -62,11 +62,13 @@ def generate_images():
     netG = GauGANUnetStylizationGenerator(args.mask_channels, args.encoder_latent_dim, 2, args.unet_ch, device)
     state_dict_generator = torch.load(args.weights_generator, map_location=device)
     netG.load_state_dict(state_dict_generator)
+    netG.to(device)
 
     # load style encoder
     netS = StyleEncoder(args.encoder_latent_dim, args.unet_ch, 2)
     state_dict_style_encoder = torch.load(args.weights_style_encoder, map_location=device)
-    netG.load_state_dict(state_dict_style_encoder)
+    netS.load_state_dict(state_dict_style_encoder)
+    netS.to(device)
 
     print('...Started generating images')
 
@@ -76,12 +78,13 @@ def generate_images():
         image, mask, masked_image, _ = dataset[i]
 
         # make it like-batch
-        image_ = image.unsqueeze(0)
-        mask_ = mask.unsqueeze(0)
-        masked_image_ = masked_image.unsqueeze(0)
+        image_ = image.unsqueeze(0).to(device)
+        mask_ = mask.unsqueeze(0).to(device)
+        masked_image_ = masked_image.unsqueeze(0).to(device)
 
         # take random style image
-        style_image_ = styles_dataset.get_image()
+        style_image = styles_dataset.get_image().to(device)
+        style_image_ = style_image.unsqueeze(0).to(device)
 
         _, test_skips = netS(masked_image_)
         test_embed, _ = netS(style_image_, False)
