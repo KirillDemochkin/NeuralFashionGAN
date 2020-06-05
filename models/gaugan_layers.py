@@ -51,6 +51,7 @@ class Style_SPADE(nn.Module):
         self.mu_conv = nn.utils.spectral_norm(nn.Conv2d(128, n_filters, kernel_size=3, padding=1), eps=1e-8)
         self.sigma_conv = nn.utils.spectral_norm(nn.Conv2d(128, n_filters, kernel_size=3, padding=1), eps=1e-8)
 
+
     def forward(self, x, mask, style_code, noise=None):
         mask = nn.functional.interpolate(mask, scale_factor=self.scale_factor)
         conditional_features = self.shared_conv(mask)

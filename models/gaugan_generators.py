@@ -163,6 +163,6 @@ class GauGANUnetStylizationGenerator(nn.Module):
         x = self.upsample_5(self.spd_blck_5(torch.cat((x, skips[1]), dim=1), mask, style_code, style_noise[4]))
         x = self.upsample_6(self.spd_blck_6(torch.cat((x, skips[0]), dim=1), mask, style_code, style_noise[5]))
         # x = self.upsample_7(self.spd_blck_7(x, mask))
-        x = self.tanh(self.to_rgb(self.instance_pre(self.leaky_post(self.out_conv(self.leaky(x))))))
+        x = self.tanh(self.to_rgb(self.instance_pre(self.leaky_post(self.out_conv(self.leaky_pre(x))))))
         return x
 
