@@ -58,14 +58,14 @@ class DeepFashion2Dataset(Dataset):
 
         if self.return_masked_image:
             masked_image = image.clone()
-            #average_color = torch.mode(masked_image.view(3, -1), dim=-1)
-            average_color = torch.mean(masked_image.view(3, -1), dim=-1)
+            average_color = torch.mode(masked_image.view(3, -1), dim=-1)
+            #average_color = torch.mean(masked_image.view(3, -1), dim=-1)
             masked_image[0, full_mask.sum(dim=0) > 0] = average_color[0]
             masked_image[1, full_mask.sum(dim=0) > 0] = average_color[1]
             masked_image[2, full_mask.sum(dim=0) > 0] = average_color[2]
             if self.noise:
-                noise = torch.zeros_like(masked_image).uniform_(-0.05, 0.05)
-                noise[:, full_mask.sum(dim=0) == 0] = 0.
+                noise = torch.zeros_like(masked_image).uniform_(-0.1, 0.1)
+                noise[:, full_mask.sum(dim=0) <= 0] = 0.
                 masked_image += noise
                 masked_image = torch.clamp(masked_image, -1, 1)
             loss_mask = torch.ones_like(masked_image)
