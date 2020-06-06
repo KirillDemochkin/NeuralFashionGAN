@@ -32,7 +32,7 @@ class DeepFashion2Dataset(Dataset):
 
         image_path = join(self.image_folder, name + '.jpg')
         image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
-        image = image.astype(np.float32) / 127.5 - 1.0
+        image = image.astype(np.float32) / 255.
 
         width, height = image.shape[1], image.shape[0]
 
@@ -52,9 +52,10 @@ class DeepFashion2Dataset(Dataset):
         if self.transform is not None:
             augmented = self.transform(image=image, mask=full_mask)
             image = augmented['image']
-            image *= 2
-            image -= 1
             full_mask = augmented['mask'].permute(2, 0, 1)
+
+        image *= 2
+        image -= 1
 
         if self.return_masked_image:
             masked_image = image.clone()
