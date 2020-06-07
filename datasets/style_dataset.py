@@ -29,12 +29,8 @@ class StyleDataset(Dataset):
         image = np.array(image)
         image = image.astype(np.float32) / 127.5 - 1.0
 
-        width, height = image.shape[1], image.shape[0]
-
         if self.transform is not None:
             augmented = self.transform(image=image)
             image = augmented['image']
-            image *= 2
-            image -= 1
 
         return image
