@@ -33,8 +33,6 @@ class CustomDataset(Dataset):
         if self.transform is not None:
             augmented = self.transform(image=image, mask=mask)
             image = augmented['image']
-            image *= 2
-            image -= 1
             full_mask = augmented['mask'].permute(2, 0, 1)
 
         if self.return_masked_image:
