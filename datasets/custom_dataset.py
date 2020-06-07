@@ -1,12 +1,5 @@
-import numpy as np
-import cv2
-import os
-from os.path import join
-import torch
-from torch.utils.data import Dataset
-
 class CustomDataset(Dataset):
-    def __init__(self, root, num_classes=13, transform=None, return_masked_image=False):
+    def __init__(self, root, num_classes=13, transform=None, return_masked_image=False, noise=False):
         super().__init__()
 
         self.image_folder = join(root, 'image')
@@ -15,29 +8,55 @@ class CustomDataset(Dataset):
         self.num_classes = num_classes
         self.transform = transform
         self.return_masked_image = return_masked_image
+        self.noise = noise
 
-    def __getitem__(self, idx):
+    def get_item(self, idx, average_color=None):
         # name = f'{idx + 1:06d}'
         name = str(idx + 1).zfill(6)
 
         image_path = join(self.image_folder, name + '.jpg')
         image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
-        image = image.astype(np.float32) / 127.5 - 1.0
+        print(np.max(image), np.min(image))
+        image = image.astype(np.float32) / 255.
+        print(np.max(image), np.min(image))
 
-        mask_path = join(self.annos_folder, name + '.png')
-        mask_raw = cv2.cvtColor(cv2.imread(mask_path), cv2.COLOR_BGR2RGB)[:, :, 0]
-
-        if name == '000001':
-            mask = self._remake_mask(mask_raw, 1) # short sleeve top
+        if name == '000001': # Masha's photo
+            mask_path = join(self.annos_folder, name + '.png')
+            mask_raw = cv2.cvtColor(cv2.imread(mask_path), cv2.COLOR_BGR2RGB)[:, :, 0]
+            full_mask = self._remake_mask(mask_raw, 1) # short sleeve top
+        if name == '000002': # Kirill's photo
+            mask_1_path = join(self.annos_folder, name + '_1.PNG')
+            mask_2_path = join(self.annos_folder, name + '_2.JPG')
+            mask_raw_1 = cv2.cvtColor(cv2.imread(mask_1_path), cv2.COLOR_BGR2RGB)[:, :, 0]
+            mask_raw_2 = cv2.cvtColor(cv2.imread(mask_2_path), cv2.COLOR_BGR2RGB)[:, :, 0]
+            full_mask_1 = self._remake_mask(mask_raw_1, 2) # long sleeve top
+            full_mask_2 = self._remake_mask(mask_raw_2, 8) # trousers
+            full_mask_1[full_mask_2 > 0] = full_mask_2[np.where(full_mask_2 > 0)]
+            full_mask = full_mask_1
 
         if self.transform is not None:
-            augmented = self.transform(image=image, mask=mask)
+            augmented = self.transform(image=image, mask=full_mask)
             image = augmented['image']
             full_mask = augmented['mask'].permute(2, 0, 1)
 
+        image *= 2
+        image -= 1
+
         if self.return_masked_image:
             masked_image = image.clone()
-            masked_image[:, full_mask.sum(dim=0) > 0] = 1.
+
+            if average_color is None:
+                average_color = torch.mean(masked_image.view(3, -1), dim=-1)
+            m = full_mask.sum(dim=0) > 0
+            masked_image[0, m] = average_color[0]
+            masked_image[1, m] = average_color[1]
+            masked_image[2, m] = average_color[2]            
+            # masked_image[:, m] = 1.0
+            if self.noise:
+                noise = torch.zeros_like(masked_image).uniform_(-0.1, 0.1)
+                noise[:, full_mask.sum(dim=0) <= 0] = 0.
+                masked_image += noise
+                masked_image = torch.clamp(masked_image, -1, 1)
             loss_mask = torch.ones_like(masked_image)
             loss_mask[:, full_mask.sum(dim=0) > 0] = 0.
             return image, full_mask, masked_image, loss_mask
